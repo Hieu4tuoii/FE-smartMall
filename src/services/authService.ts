@@ -1,0 +1,90 @@
+import { API_CONFIG } from "@/configs/apiConfig";
+import { AuthResponse, LoginRequest } from "@/types/authType";
+import { CookieManager } from "@/lib/cookies";
+
+export class AuthService {
+  private static baseUrl = API_CONFIG.BASE_URL;
+
+  static async login(credentials: LoginRequest): Promise<AuthResponse> {
+    const response = await fetch(
+      `${this.baseUrl}${API_CONFIG.ENDPOINTS.AUTH.SIGN_IN}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Đăng nhập thất bại");
+    }
+
+    const result = await response.json();
+    return result.data;
+  }
+
+  static async fetchWithAuth(url: string, options?: RequestInit) {
+    const token = this.getToken();
+
+    const headers = {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options?.headers,
+    };
+
+    const response = await fetch(`${this.baseUrl}${url}`, {
+      ...options,
+      headers,
+    });
+
+    if (response.status === 401) {
+      this.clearAuth();
+      if (typeof window !== "undefined") {
+        window.location.href = "/dang-nhap";
+      }
+      throw new Error("Unauthorized");
+    }
+
+    return response;
+  }
+
+  static saveAuth(data: AuthResponse) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("token", data.jwt);
+      localStorage.setItem("user", JSON.stringify(data));
+      // Also save to cookie for middleware
+      CookieManager.setCookie("token", data.jwt, 730); // 2 years
+    }
+  }
+
+  static getToken(): string | null {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("token");
+    }
+    return null;
+  }
+
+  static getUser(): AuthResponse | null {
+    if (typeof window !== "undefined") {
+      const user = localStorage.getItem("user");
+      return user ? JSON.parse(user) : null;
+    }
+    return null;
+  }
+
+  static clearAuth() {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      CookieManager.deleteCookie("token");
+    }
+  }
+
+  static isAuthenticated(): boolean {
+    return !!this.getToken();
+  }
+}
+
