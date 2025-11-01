@@ -3,7 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { Loader2, Users, UserCog, LayoutDashboard, Package } from "lucide-react";
+import { Loader2, Users, UserCog, LayoutDashboard, Package, Truck, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 
 export function AdminLayoutContent({
@@ -58,6 +58,16 @@ export function AdminLayoutContent({
       label: "Nhân viên",
       icon: UserCog,
     },
+    {
+      href: "/admin/suppliers",
+      label: "Nhà cung cấp",
+      icon: Truck,
+    },
+    {
+      href: "/admin/import-orders",
+      label: "Đơn nhập",
+      icon: ShoppingCart,
+    },
   ];
 
   return (
@@ -71,7 +81,7 @@ export function AdminLayoutContent({
           <ul className="space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
               return (
                 <li key={item.href}>
                   <Link

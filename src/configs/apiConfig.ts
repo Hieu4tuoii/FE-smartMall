@@ -35,10 +35,19 @@ export const API_CONFIG = {
       ALL: "/brand/all",
       BY_ID: (id: string) => `/brand/${id}`,
     },
+    SUPPLIER: {
+      BASE: "/supplier",
+      BY_ID: (id: string) => `/supplier/${id}`,
+      SEARCH: "/supplier/search",
+    },
     CATEGORY: {
       LIST: "/category",
       ALL: "/category/all",
       BY_ID: (id: string) => `/category/${id}`,
+    },
+    IMPORT_ORDER: {
+      BASE: "/import-order",
+      PRODUCT_IMPORT_SELECT: "/import-order/product-import-select",
     },
   },
 } as const;
