@@ -47,6 +47,7 @@ export const API_CONFIG = {
     },
     IMPORT_ORDER: {
       BASE: "/import-order",
+      BY_ID: (id: string) => `/import-order/${id}`,
       PRODUCT_IMPORT_SELECT: "/import-order/product-import-select",
     },
   },

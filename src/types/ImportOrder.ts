@@ -36,6 +36,35 @@ export interface ImportOrderResponse {
 }
 
 /**
+ * Response từ API /import-order/{id}
+ * Chi tiết đơn nhập
+ */
+export interface ImportOrderDetailResponse {
+  id: string;
+  supplierId: string;
+  supplierName: string;
+  totalImportPrice: number;
+  createdAt: string;
+  modifiedAt?: string;
+  items: ImportOrderItemDetail[];
+}
+
+/**
+ * Chi tiết item trong đơn nhập
+ */
+export interface ImportOrderItemDetail {
+  productId: string;
+  productName: string;
+  versionId: string;
+  versionName: string;
+  colorId: string;
+  colorName: string;
+  importPrice: number;
+  quantity: number;
+  imeiOrSerialList: string[];
+}
+
+/**
  * Request để tạo đơn nhập (khớp với backend)
  */
 export interface ImportOrderRequest {

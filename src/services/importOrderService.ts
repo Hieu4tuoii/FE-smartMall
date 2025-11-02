@@ -3,6 +3,7 @@ import { AuthService } from "./authService";
 import {
   ImportOrderResponse,
   ImportOrderRequest,
+  ImportOrderDetailResponse,
   ProductImportSelectResponse,
   ProductImportSelectRequest,
   ProductImportSelectOption,
@@ -17,7 +18,7 @@ export class ImportOrderService {
    */
   static async getList(
     params: { page?: number; size?: number } = {}
-  ): Promise<PageResponse<ImportOrderResponse[]>> {
+  ): Promise<PageResponse<ImportOrderResponse>> {
     const queryParams = new URLSearchParams();
     queryParams.append("page", (params.page || 0).toString());
     queryParams.append("size", (params.size || 10).toString());
@@ -123,6 +124,25 @@ export class ImportOrderService {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Tạo đơn nhập thất bại");
+    }
+
+    const result = await response.json();
+    return result.data;
+  }
+
+  /**
+   * Lấy chi tiết đơn nhập theo ID
+   * @param id - ID của đơn nhập
+   * @returns Chi tiết đơn nhập
+   */
+  static async getById(id: string): Promise<ImportOrderDetailResponse> {
+    const response = await AuthService.fetchWithAuth(
+      API_CONFIG.ENDPOINTS.IMPORT_ORDER.BY_ID(id)
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Lấy thông tin đơn nhập thất bại");
     }
 
     const result = await response.json();

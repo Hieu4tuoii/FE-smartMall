@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Loader2, Plus } from "lucide-react";
+import { Search, Loader2, Plus, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Pagination,
@@ -34,7 +34,7 @@ export default function ImportOrdersPage() {
   const [orders, setOrders] = useState<ImportOrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
-  const [pageData, setPageData] = useState<PageResponse<ImportOrderResponse[]> | null>(null);
+  const [pageData, setPageData] = useState<PageResponse<ImportOrderResponse> | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -162,12 +162,13 @@ export default function ImportOrdersPage() {
                     <TableHead>Nhà cung cấp</TableHead>
                     <TableHead>Tổng tiền</TableHead>
                     <TableHead>Ngày nhập</TableHead>
+                    <TableHead className="text-right">Hành động</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {orders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                         Không có đơn nhập nào
                       </TableCell>
                     </TableRow>
@@ -179,6 +180,16 @@ export default function ImportOrdersPage() {
                         </TableCell>
                         <TableCell>{formatCurrency(order.totalImportPrice)}</TableCell>
                         <TableCell>{formatDate(order.createdAt)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/admin/import-orders/${order.id}`)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
