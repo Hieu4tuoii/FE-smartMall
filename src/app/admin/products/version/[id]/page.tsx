@@ -26,8 +26,10 @@ import {
   updateProductVersion,
   updateProductColorVersion,
   deleteProductVersion,
-  deleteProductColorVersion
+  deleteProductColorVersion,
+  getProductById
 } from "@/services/productService";
+import { Product } from "@/types/Product";
 
 export default function VersionManagerPage() {
   const params = useParams();
@@ -35,6 +37,7 @@ export default function VersionManagerPage() {
   
   const [versions, setVersions] = useState<ProductVersion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<Product | null>(null);
   
   // Modal states
   const [isAddVersionOpen, setIsAddVersionOpen] = useState(false);
@@ -60,100 +63,96 @@ export default function VersionManagerPage() {
   
   // Form states
   const [versionName, setVersionName] = useState("");
+  const [versionSlug, setVersionSlug] = useState("");
+  const [versionPrice, setVersionPrice] = useState("");
+  const [isManualSlug, setIsManualSlug] = useState(false); // Flag để biết slug được chỉnh sửa thủ công
   const [editVersionName, setEditVersionName] = useState("");
+  const [editVersionSlug, setEditVersionSlug] = useState("");
+  const [editVersionPrice, setEditVersionPrice] = useState("");
+  const [isManualEditSlug, setIsManualEditSlug] = useState(false); // Flag cho form sửa
   const [colorForm, setColorForm] = useState({
     color: "",
-    sku: "",
-    price: "",
-    colorHex: "#000000"
+    sku: ""
   });
   const [editColorForm, setEditColorForm] = useState({
     color: "",
-    sku: "",
-    price: "",
-    colorHex: "#000000"
+    sku: ""
   });
+
+  // Hàm chuyển đổi string sang slug format
+  const stringToSlug = (str: string): string => {
+    return str
+      .toLowerCase()
+      .trim()
+      .normalize('NFD') // Tách dấu tiếng Việt khỏi ký tự gốc
+      .replace(/[\u0300-\u036f]/g, '') // Loại bỏ toàn bộ dấu thanh
+      .replace(/đ/g, 'd') // thay đ → d
+      .replace(/[^a-z0-9\s-]/g, '') // Loại bỏ ký tự đặc biệt còn lại
+      .replace(/[\s_]+/g, '-') // Thay khoảng trắng/underscore bằng gạch ngang
+      .replace(/-+/g, '-') // Gom nhiều gạch ngang liên tiếp thành một
+      .replace(/^-+|-+$/g, ''); // Loại bỏ gạch ở đầu/cuối
+  };
 
   // Fetch data từ API
   useEffect(() => {
-    const fetchVersions = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await getProductVersions(productId);
-        setVersions(data);
+        const [versionsData, productData] = await Promise.all([
+          getProductVersions(productId),
+          getProductById(productId)
+        ]);
+        setVersions(versionsData);
+        setProduct(productData);
       } catch (error) {
         console.error("Lỗi khi lấy danh sách phiên bản:", error);
         toast({
           title: "Lỗi",
           description: "Không thể tải danh sách phiên bản"
         });
-        // Fallback về mock data nếu API lỗi
-        const mockVersions: ProductVersion[] = [
-          {
-            id: "1",
-            name: "128GB",
-            productId: productId,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            colorVersions: [
-              {
-                id: "1-1",
-                color: "Đen",
-                sku: "IP15-128-BLK",
-                price: 25000000,
-                productVersionId: "1",
-                colorHex: "#000000",
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-              },
-              {
-                id: "1-2",
-                color: "Trắng",
-                sku: "ykyuk",
-                price: 24000000,
-                productVersionId: "1",
-                colorHex: "#FFFFFF",
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-              }
-            ]
-          },
-          {
-            id: "2",
-            name: "512GB",
-            productId: productId,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            colorVersions: [
-              {
-                id: "2-1",
-                color: "đỏ",
-                sku: "uqeqweqwe",
-                price: 23000000,
-                productVersionId: "2",
-                colorHex: "#FF0000",
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-              }
-            ]
-          }
-        ];
-        setVersions(mockVersions);
+        setVersions([]);
+        setProduct(null);
       } finally {
         setLoading(false);
       }
     };
 
     if (productId) {
-      fetchVersions();
+      fetchData();
     }
   }, [productId]);
 
+  // Tự động tạo slug khi versionName thay đổi (form thêm)
+  useEffect(() => {
+    if (versionName.trim() && product && !isManualSlug) {
+      const productSlug = stringToSlug(product.name);
+      const versionSlug = stringToSlug(versionName);
+      const fullSlug = `${productSlug}-${versionSlug}`;
+      setVersionSlug(fullSlug);
+    } else if (!versionName.trim()) {
+      setVersionSlug("");
+      setIsManualSlug(false);
+    }
+  }, [versionName, product, isManualSlug]);
+
+  // Tự động tạo slug khi editVersionName thay đổi (form sửa)
+  useEffect(() => {
+    if (editVersionName.trim() && product && !isManualEditSlug) {
+      const productSlug = stringToSlug(product.name);
+      const versionSlug = stringToSlug(editVersionName);
+      const fullSlug = `${productSlug}-${versionSlug}`;
+      setEditVersionSlug(fullSlug);
+    } else if (!editVersionName.trim()) {
+      setEditVersionSlug("");
+      setIsManualEditSlug(false);
+    }
+  }, [editVersionName, product, isManualEditSlug]);
+
   const handleAddVersion = async () => {
-    if (!versionName.trim()) {
+    if (!versionName.trim() || !versionPrice.trim()) {
       toast({
         title: "Lỗi",
-        description: "Vui lòng nhập tên phiên bản"
+        description: "Vui lòng nhập đầy đủ thông tin"
       });
       return;
     }
@@ -161,7 +160,9 @@ export default function VersionManagerPage() {
     try {
       const request: CreateProductVersionRequest = {
         name: versionName,
-        productId: productId
+        slug: versionSlug.trim() || undefined,
+        productId: productId,
+        price: parseInt(versionPrice)
       };
       
       await createProductVersion(request);
@@ -171,6 +172,9 @@ export default function VersionManagerPage() {
       setVersions(data);
       
       setVersionName("");
+      setVersionSlug("");
+      setVersionPrice("");
+      setIsManualSlug(false);
       setIsAddVersionOpen(false);
       
       toast({
@@ -186,7 +190,7 @@ export default function VersionManagerPage() {
   };
 
   const handleAddColor = async () => {
-    if (!colorForm.color.trim() || !colorForm.sku.trim() || !colorForm.price.trim()) {
+    if (!colorForm.color.trim() || !colorForm.sku.trim()) {
       toast({
         title: "Lỗi",
         description: "Vui lòng điền đầy đủ thông tin"
@@ -198,9 +202,7 @@ export default function VersionManagerPage() {
       const request: CreateProductColorVersionRequest = {
         color: colorForm.color,
         sku: colorForm.sku,
-        price: parseInt(colorForm.price),
-        productVersionId: selectedVersionId,
-        colorHex: colorForm.colorHex
+        productVersionId: selectedVersionId
       };
       
       await createProductColorVersion(request);
@@ -209,7 +211,7 @@ export default function VersionManagerPage() {
       const data = await getProductVersions(productId);
       setVersions(data);
       
-      setColorForm({ color: "", sku: "", price: "", colorHex: "#000000" });
+      setColorForm({ color: "", sku: "" });
       setIsAddColorOpen(false);
       
       toast({
@@ -281,24 +283,29 @@ export default function VersionManagerPage() {
     }
   };
 
-  const handleEditVersionClick = (versionId: string, versionName: string) => {
+  const handleEditVersionClick = (versionId: string, version: ProductVersion) => {
     setSelectedVersionId(versionId);
-    setEditVersionName(versionName);
+    setEditVersionName(version.name);
+    setEditVersionSlug(version.slug || "");
+    setEditVersionPrice(version.price?.toString() || "");
+    setIsManualEditSlug(!!version.slug); // Nếu có slug sẵn thì coi như đã chỉnh sửa thủ công
     setIsEditVersionOpen(true);
   };
 
   const handleEditVersion = async () => {
-    if (!editVersionName.trim()) {
+    if (!editVersionName.trim() || !editVersionPrice.trim()) {
       toast({
         title: "Lỗi",
-        description: "Vui lòng nhập tên phiên bản"
+        description: "Vui lòng nhập đầy đủ thông tin"
       });
       return;
     }
 
     try {
       const request: UpdateProductVersionRequest = {
-        name: editVersionName
+        name: editVersionName,
+        slug: editVersionSlug.trim() || undefined,
+        price: parseInt(editVersionPrice)
       };
       
       await updateProductVersion(selectedVersionId, request);
@@ -308,6 +315,9 @@ export default function VersionManagerPage() {
       setVersions(data);
       
       setEditVersionName("");
+      setEditVersionSlug("");
+      setEditVersionPrice("");
+      setIsManualEditSlug(false);
       setIsEditVersionOpen(false);
       
       toast({
@@ -326,15 +336,13 @@ export default function VersionManagerPage() {
     setSelectedColorId(color.id);
     setEditColorForm({
       color: color.color,
-      sku: color.sku,
-      price: color.price.toString(),
-      colorHex: color.colorHex
+      sku: color.sku
     });
     setIsEditColorOpen(true);
   };
 
   const handleEditColor = async () => {
-    if (!editColorForm.color.trim() || !editColorForm.sku.trim() || !editColorForm.price.trim()) {
+    if (!editColorForm.color.trim() || !editColorForm.sku.trim()) {
       toast({
         title: "Lỗi",
         description: "Vui lòng điền đầy đủ thông tin"
@@ -345,9 +353,7 @@ export default function VersionManagerPage() {
     try {
       const request: UpdateProductColorVersionRequest = {
         color: editColorForm.color,
-        sku: editColorForm.sku,
-        price: parseInt(editColorForm.price),
-        colorHex: editColorForm.colorHex
+        sku: editColorForm.sku
       };
       
       await updateProductColorVersion(selectedColorId, request);
@@ -356,7 +362,7 @@ export default function VersionManagerPage() {
       const data = await getProductVersions(productId);
       setVersions(data);
       
-      setEditColorForm({ color: "", sku: "", price: "", colorHex: "#000000" });
+      setEditColorForm({ color: "", sku: "" });
       setIsEditColorOpen(false);
       
       toast({
@@ -378,6 +384,10 @@ export default function VersionManagerPage() {
     }).format(price);
   };
 
+  const formatNumber = (value: number | undefined) => {
+    return new Intl.NumberFormat('vi-VN').format(value ?? 0);
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-64">Đang tải...</div>;
   }
@@ -392,7 +402,15 @@ export default function VersionManagerPage() {
 
       {/* Add Version Button */}
       <div className="flex justify-end mb-6">
-        <Dialog open={isAddVersionOpen} onOpenChange={setIsAddVersionOpen}>
+        <Dialog open={isAddVersionOpen} onOpenChange={(open) => {
+          setIsAddVersionOpen(open);
+          if (!open) {
+            setVersionName("");
+            setVersionSlug("");
+            setVersionPrice("");
+            setIsManualSlug(false);
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 text-white hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" />
@@ -416,6 +434,28 @@ export default function VersionManagerPage() {
                   onChange={(e) => setVersionName(e.target.value)}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="versionSlug">Slug</Label>
+                <Input
+                  id="versionSlug"
+                  placeholder="Ví dụ: 128gb, 256gb, 512gb..."
+                  value={versionSlug}
+                  onChange={(e) => {
+                    setVersionSlug(e.target.value);
+                    setIsManualSlug(true);
+                  }}
+                  onFocus={() => setIsManualSlug(true)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="versionPrice">Giá (VNĐ) *</Label>
+                <Input
+                  id="versionPrice"
+                  placeholder="Ví dụ: 25000000"
+                  value={versionPrice}
+                  onChange={(e) => setVersionPrice(e.target.value)}
+                />
+              </div>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setIsAddVersionOpen(false)}>
                   Hủy
@@ -437,9 +477,21 @@ export default function VersionManagerPage() {
               <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-4">
                   <h3 className="text-xl font-semibold">{version.name}</h3>
+                  {version.price && (
+                    <Badge variant="default" className="bg-green-600">
+                      {formatPrice(version.price)}
+                    </Badge>
+                  )}
                   <Badge variant="secondary">
                     {version.colorVersions?.length || 0} màu sắc
                   </Badge>
+                  {typeof version.averageRating === "number" && (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      {(version.averageRating ?? 0).toFixed(1)}
+                      <span className="text-yellow-500">★</span>
+                      <span>· {version.totalRating ?? 0} đánh giá</span>
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex space-x-2">
                   <Button 
@@ -447,7 +499,7 @@ export default function VersionManagerPage() {
                     size="sm"
                     className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                     title="Chỉnh sửa phiên bản"
-                    onClick={() => handleEditVersionClick(version.id, version.name)}
+                    onClick={() => handleEditVersionClick(version.id, version)}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
@@ -509,32 +561,6 @@ export default function VersionManagerPage() {
                               onChange={(e) => setColorForm(prev => ({ ...prev, sku: e.target.value }))}
                             />
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="price">Giá (VNĐ) *</Label>
-                            <Input
-                              id="price"
-                              placeholder="Ví dụ: 25000000"
-                              value={colorForm.price}
-                              onChange={(e) => setColorForm(prev => ({ ...prev, price: e.target.value }))}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="colorHex">Mã màu *</Label>
-                            <div className="flex items-center space-x-2">
-                              <Input
-                                id="colorHex"
-                                type="color"
-                                value={colorForm.colorHex}
-                                onChange={(e) => setColorForm(prev => ({ ...prev, colorHex: e.target.value }))}
-                                className="w-12 h-10 p-1"
-                              />
-                              <Input
-                                placeholder="#000000"
-                                value={colorForm.colorHex}
-                                onChange={(e) => setColorForm(prev => ({ ...prev, colorHex: e.target.value }))}
-                              />
-                            </div>
-                          </div>
                         </div>
                         <div className="flex justify-end space-x-2">
                           <Button variant="outline" onClick={() => setIsAddColorOpen(false)}>
@@ -553,24 +579,22 @@ export default function VersionManagerPage() {
                 <div className="grid gap-4">
                   {version.colorVersions?.map((color) => (
                     <div key={color.id} className="bg-white p-4 rounded-lg border flex items-center justify-between">
-                      <div className="flex items-center space-x-6">
-                        <div 
-                          className="w-8 h-8 rounded border"
-                          style={{ backgroundColor: color.colorHex }}
-                        />
-                        <div className="flex items-center space-x-8">
-                          <div>
-                            <Label className="text-xs text-gray-500">Tên màu</Label>
-                            <p className="font-medium">{color.color}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-gray-500">SKU</Label>
-                            <p className="text-sm bg-gray-100 px-2 py-1 rounded-full">{color.sku}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-gray-500">Giá</Label>
-                            <p className="font-medium">{formatPrice(color.price)}</p>
-                          </div>
+                      <div className="flex-1 grid grid-cols-4 gap-6">
+                        <div>
+                          <Label className="text-xs text-gray-500">Tên màu</Label>
+                          <p className="font-medium truncate">{color.color}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">SKU</Label>
+                          <p className="text-sm bg-gray-100 px-2 py-1 rounded-full w-fit">{color.sku}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">Tồn kho</Label>
+                          <p className="font-medium">{formatNumber(color.totalStock)}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">Đã bán</Label>
+                          <p className="font-medium">{formatNumber(color.totalSold)}</p>
                         </div>
                       </div>
                       <div className="flex space-x-2">
@@ -603,7 +627,15 @@ export default function VersionManagerPage() {
       </div>
 
       {/* Edit Version Modal */}
-      <Dialog open={isEditVersionOpen} onOpenChange={setIsEditVersionOpen}>
+      <Dialog open={isEditVersionOpen} onOpenChange={(open) => {
+        setIsEditVersionOpen(open);
+        if (!open) {
+          setEditVersionName("");
+          setEditVersionSlug("");
+          setEditVersionPrice("");
+          setIsManualEditSlug(false);
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Chỉnh sửa phiên bản</DialogTitle>
@@ -619,6 +651,28 @@ export default function VersionManagerPage() {
                 placeholder="Ví dụ: 128GB, 256GB, 512GB..."
                 value={editVersionName}
                 onChange={(e) => setEditVersionName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editVersionSlug">Slug</Label>
+              <Input
+                id="editVersionSlug"
+                placeholder="Ví dụ: 128gb, 256gb, 512gb..."
+                value={editVersionSlug}
+                onChange={(e) => {
+                  setEditVersionSlug(e.target.value);
+                  setIsManualEditSlug(true);
+                }}
+                onFocus={() => setIsManualEditSlug(true)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editVersionPrice">Giá (VNĐ) *</Label>
+              <Input
+                id="editVersionPrice"
+                placeholder="Ví dụ: 25000000"
+                value={editVersionPrice}
+                onChange={(e) => setEditVersionPrice(e.target.value)}
               />
             </div>
             <div className="flex justify-end space-x-2">
@@ -661,32 +715,6 @@ export default function VersionManagerPage() {
                   value={editColorForm.sku}
                   onChange={(e) => setEditColorForm(prev => ({ ...prev, sku: e.target.value }))}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="editPrice">Giá (VNĐ) *</Label>
-                <Input
-                  id="editPrice"
-                  placeholder="Ví dụ: 25000000"
-                  value={editColorForm.price}
-                  onChange={(e) => setEditColorForm(prev => ({ ...prev, price: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="editColorHex">Mã màu *</Label>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    id="editColorHex"
-                    type="color"
-                    value={editColorForm.colorHex}
-                    onChange={(e) => setEditColorForm(prev => ({ ...prev, colorHex: e.target.value }))}
-                    className="w-12 h-10 p-1"
-                  />
-                  <Input
-                    placeholder="#000000"
-                    value={editColorForm.colorHex}
-                    onChange={(e) => setEditColorForm(prev => ({ ...prev, colorHex: e.target.value }))}
-                  />
-                </div>
               </div>
             </div>
             <div className="flex justify-end space-x-2">

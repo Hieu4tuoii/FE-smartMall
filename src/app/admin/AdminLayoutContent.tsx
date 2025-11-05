@@ -3,7 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { Loader2, Users, UserCog, LayoutDashboard, Package, Truck, ShoppingCart } from "lucide-react";
+import { Loader2, Users, UserCog, LayoutDashboard, Package, Truck, ShoppingCart, Tag, Image as ImageIcon, FolderTree, Award } from "lucide-react";
 import Link from "next/link";
 
 export function AdminLayoutContent({
@@ -49,6 +49,16 @@ export function AdminLayoutContent({
       icon: Package,
     },
     {
+      href: "/admin/categories",
+      label: "Danh mục",
+      icon: FolderTree,
+    },
+    {
+      href: "/admin/brands",
+      label: "Thương hiệu",
+      icon: Award,
+    },
+    {
       href: "/admin/customers",
       label: "Khách hàng",
       icon: Users,
@@ -67,6 +77,16 @@ export function AdminLayoutContent({
       href: "/admin/import-orders",
       label: "Đơn nhập",
       icon: ShoppingCart,
+    },
+    {
+      href: "/admin/promotions",
+      label: "Chương trình giảm giá",
+      icon: Tag,
+    },
+    {
+      href: "/admin/banners",
+      label: "Banner",
+      icon: ImageIcon,
     },
   ];
 

@@ -2,6 +2,7 @@
 
 import { deleteProduct } from "@/services/productService";
 import { Product } from "@/types/Product";
+import { getImageUrl } from "@/services/uploadService";
 import {
   Table,
   TableBody,
@@ -111,7 +112,14 @@ export const ProductTable = ({
    * Format ngày tháng
    */
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN");
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
   };
 
   /**
@@ -121,13 +129,7 @@ export const ProductTable = ({
     return new Intl.NumberFormat("vi-VN").format(num);
   };
 
-  /**
-   * Render stars rating
-   */
-  const renderRating = (rating: number) => {
-    const stars = Math.round(rating);
-    return "★".repeat(stars) + "☆".repeat(5 - stars);
-  };
+  // (đã bỏ hiển thị đánh giá/tồn kho/đã bán nên không cần renderRating)
 
   return (
     <div className="space-y-4">
@@ -139,9 +141,6 @@ export const ProductTable = ({
               <TableHead className="w-[50px]">STT</TableHead>
               <TableHead>Tên sản phẩm</TableHead>
               <TableHead>Model</TableHead>
-              <TableHead>Đánh giá</TableHead>
-              <TableHead>Tồn kho</TableHead>
-              <TableHead>Đã bán</TableHead>
               <TableHead>Ngày tạo</TableHead>
               <TableHead className="text-right w-[180px]">Hành động</TableHead>
             </TableRow>
@@ -155,13 +154,10 @@ export const ProductTable = ({
                 <TableCell>
                   <div className="space-y-1">
                     <div className="font-medium">{product.name}</div>
-                    <div className="text-sm text-gray-500">
-                      ID: {product.id}
-                    </div>
                     {product.imageUrl && (
                       <div className="w-12 h-12 rounded-md overflow-hidden">
                         <img 
-                          src={product.imageUrl} 
+                          src={getImageUrl(product.imageUrl)} 
                           alt={product.name}
                           className="w-full h-full object-cover"
                         />
@@ -171,28 +167,6 @@ export const ProductTable = ({
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">{product.model}</Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div className="text-yellow-500 text-sm">
-                      {renderRating(product.averageRating || 0)}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      ({product.totalRating || 0} đánh giá)
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge 
-                    variant={product.totalStock > 0 ? "default" : "destructive"}
-                  >
-                    {formatNumber(product.totalStock || 0)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">
-                    {formatNumber(product.totalSold || 0)}
-                  </Badge>
                 </TableCell>
                 <TableCell className="text-sm">
                   {formatDate(product.createdAt)}

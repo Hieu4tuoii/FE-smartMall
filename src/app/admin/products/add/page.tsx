@@ -3,12 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createProduct } from "@/services/productService";
-import { getAllBrands } from "@/services/brandService";
-import { getAllCategories } from "@/services/categoryService";
+import { getAllCategories, listAllCategories } from "@/services/categoryService";
 import { uploadImage, getImageUrl } from "@/services/uploadService";
 import { CreateProductRequest, ImageRequest } from "@/types/Product";
-import { Brand } from "@/types/Brand";
-import { Category } from "@/types/Category";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +20,9 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Loader2, Package, Plus, Trash2, Upload, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { BrandResponse } from "@/types/Brand";
+import { CategoryResponse } from "@/types/Category";
+import { listAllBrands } from "@/services/brandService";
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -30,7 +30,6 @@ export default function AddProductPage() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CreateProductRequest>({
     name: "",
-    slug: "",
     model: "",
     description: "",
     warrantyPeriod: 0,
@@ -47,8 +46,8 @@ export default function AddProductPage() {
   const [imageList, setImageList] = useState<ImageRequest[]>([]);
 
   // State cho brands và categories
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<BrandResponse[]>([]);
+  const [categories, setCategories] = useState<CategoryResponse[]>([]);
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
 
@@ -174,8 +173,8 @@ export default function AddProductPage() {
         setLoadingCategories(true);
         
         const [brandsData, categoriesData] = await Promise.all([
-          getAllBrands(),
-          getAllCategories()
+          listAllBrands(),
+          listAllCategories()
         ]);
         
         setBrands(brandsData);
@@ -202,10 +201,6 @@ export default function AddProductPage() {
     
     if (!formData.name.trim()) {
       newErrors.name = "Tên sản phẩm là bắt buộc";
-    }
-    
-    if (!formData.slug.trim()) {
-      newErrors.slug = "Slug là bắt buộc";
     }
     
     if (!formData.model.trim()) {
@@ -322,19 +317,6 @@ export default function AddProductPage() {
                     required
                   />
                   <ErrorMessage error={errors.name} />
-                </div>
-
-                {/* Slug */}
-                <div className="space-y-2">
-                  <Label htmlFor="slug">Slug *</Label>
-                  <Input
-                    id="slug"
-                    value={formData.slug}
-                    onChange={(e) => handleInputChange("slug", e.target.value)}
-                    placeholder="Nhập slug sản phẩm"
-                    required
-                  />
-                  <ErrorMessage error={errors.slug} />
                 </div>
 
                 {/* Model */}

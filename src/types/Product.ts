@@ -2,7 +2,6 @@
 export interface Product {
   id: string;
   name: string;
-  slug: string;
   model: string;
   averageRating: number;
   totalRating: number;
@@ -30,7 +29,6 @@ export interface ImageRequest {
 // Interface cho tạo sản phẩm mới (phù hợp với backend ProductCreateRequest)
 export interface CreateProductRequest {
   name: string;
-  slug: string;
   model: string;
   warrantyPeriod?: number;
   description?: string;

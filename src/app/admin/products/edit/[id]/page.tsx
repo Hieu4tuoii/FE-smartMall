@@ -34,7 +34,6 @@ export default function EditProductPage() {
   const [loadingProduct, setLoadingProduct] = useState(true);
   const [formData, setFormData] = useState<CreateProductRequest>({
     name: "",
-    slug: "",
     model: "",
     description: "",
     warrantyPeriod: 0,
@@ -185,7 +184,6 @@ export default function EditProductPage() {
         // Set form data từ product
         setFormData({
           name: productData.name || "",
-          slug: productData.slug || "",
           model: productData.model || "",
           description: productData.description || "",
           warrantyPeriod: productData.warrantyPeriod || 0,
@@ -242,10 +240,6 @@ export default function EditProductPage() {
     
     if (!formData.name.trim()) {
       newErrors.name = "Tên sản phẩm là bắt buộc";
-    }
-    
-    if (!formData.slug.trim()) {
-      newErrors.slug = "Slug là bắt buộc";
     }
     
     if (!formData.model.trim()) {
@@ -378,19 +372,6 @@ export default function EditProductPage() {
                     required
                   />
                   <ErrorMessage error={errors.name} />
-                </div>
-
-                {/* Slug */}
-                <div className="space-y-2">
-                  <Label htmlFor="slug">Slug *</Label>
-                  <Input
-                    id="slug"
-                    value={formData.slug}
-                    onChange={(e) => handleInputChange("slug", e.target.value)}
-                    placeholder="Nhập slug sản phẩm"
-                    required
-                  />
-                  <ErrorMessage error={errors.slug} />
                 </div>
 
                 {/* Model */}

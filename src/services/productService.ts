@@ -10,7 +10,8 @@ import {
   CreateProductVersionRequest,
   CreateProductColorVersionRequest,
   UpdateProductVersionRequest,
-  UpdateProductColorVersionRequest
+  UpdateProductColorVersionRequest,
+  ProductVersionResponse
 } from "@/types/ProductVersion";
 import { AuthService } from "./authService";
 
@@ -130,6 +131,26 @@ import { AuthService } from "./authService";
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Lấy danh sách phiên bản thất bại");
+    }
+
+    const result = await response.json();
+    return result.data;
+  }
+
+  /**
+   * Lấy tất cả phiên bản sản phẩm (cho promotion selector)
+   */
+  export async function getAllProductVersions(): Promise<ProductVersion[]> {
+    const response = await AuthService.fetchWithAuth(
+      API_CONFIG.ENDPOINTS.PRODUCT.ALL_VERSIONS,
+      {
+        method: "GET",
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Lấy danh sách phiên bản sản phẩm thất bại");
     }
 
     const result = await response.json();
@@ -262,6 +283,67 @@ import { AuthService } from "./authService";
       const error = await response.json();
       throw new Error(error.message || "Xóa màu sắc phiên bản thất bại");
     }
+  }
+
+  /**
+   * Tìm kiếm phiên bản sản phẩm công khai (không cần authentication)
+   */
+  export async function searchPublicProductVersions(params: {
+    hasPromotion?: boolean;
+    brandIds?: string[];
+    categoryIds?: string[];
+    keyword?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    page?: number;
+    size?: number;
+    sort?: string;
+  }): Promise<PageResponse<ProductVersionResponse>> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.hasPromotion !== undefined) {
+      queryParams.append("hasPromotion", params.hasPromotion.toString());
+    }
+    if (params.brandIds && params.brandIds.length > 0) {
+      params.brandIds.forEach(id => queryParams.append("brandIds", id));
+    }
+    if (params.categoryIds && params.categoryIds.length > 0) {
+      params.categoryIds.forEach(id => queryParams.append("categoryIds", id));
+    }
+    if (params.keyword) {
+      queryParams.append("keyword", params.keyword);
+    }
+    if (params.minPrice !== undefined && params.minPrice !== null) {
+      queryParams.append("minPrice", params.minPrice.toString());
+    }
+    if (params.maxPrice !== undefined && params.maxPrice !== null) {
+      queryParams.append("maxPrice", params.maxPrice.toString());
+    }
+    if (params.page !== undefined) {
+      queryParams.append("page", params.page.toString());
+    }
+    if (params.size !== undefined) {
+      queryParams.append("size", params.size.toString());
+    }
+    if (params.sort) {
+      queryParams.append("sort", params.sort);
+    }
+
+    const response = await fetch(
+      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PRODUCT.PUBLIC_VERSION_SEARCH}?${queryParams.toString()}`,
+      {
+        method: "GET",
+        next: { revalidate: 60 }, // Revalidate cache after 60 seconds
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Tìm kiếm sản phẩm thất bại");
+    }
+
+    const result = await response.json();
+    return result.data;
   }
 
   
