@@ -21,6 +21,8 @@ export const API_CONFIG = {
       VERSIONS_BY_PRODUCT_ID: (id: string) => `/product/${id}/versions`,
       ALL_VERSIONS: "/product/versions/all", // Lấy tất cả versions của tất cả products
       PUBLIC_VERSION_SEARCH: "/product/public/version/search", // Tìm kiếm phiên bản sản phẩm công khai
+      PUBLIC_VERSION_BY_SLUG: (slug: string) => `/product/public/version/${slug}`,
+      PUBLIC_VERSION_RELATED: (slug: string) => `/product/public/version/${slug}/related`,
       VERSION: {
         CREATE: "/product/version",
         UPDATE: (id: string) => `/product/version/${id}`,
@@ -31,6 +33,10 @@ export const API_CONFIG = {
         UPDATE: (id: string) => `/product/color-version/${id}`,
         DELETE: (id: string) => `/product/color-version/${id}`,
       },
+    },
+    CART: {
+      COUNT: "/cart/count",
+      UPDATE: "/cart/update",
     },
     BRAND: {
       LIST: "/brand",

@@ -6,16 +6,25 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useCart } from "@/contexts/CartContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { CategoryResponse } from "@/types/Category";
+import { getCartCount } from "@/services/cartService";
+import { AuthService } from "@/services/authService";
 
 export function Header({ categories }: { categories: CategoryResponse[] }) {
-  const { getTotalItems } = useCart();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [cartCount, setCartCount] = useState<number>(0);
+
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? AuthService.getToken?.() : null;
+    if (!token) return; // Chỉ gọi khi đã đăng nhập
+    getCartCount()
+      .then(setCartCount)
+      .catch(() => setCartCount(0));
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +83,7 @@ export function Header({ categories }: { categories: CategoryResponse[] }) {
               onClick={() => router.push("/cart")}
             >
               <ShoppingCart className="w-5 h-5" />
-              {getTotalItems() > 0 && <Badge className="absolute -top-1 -right-1 h-5 min-w-5 rounded-full px-1">{getTotalItems()}</Badge>}
+              {cartCount > 0 && <Badge className="absolute -top-1 -right-1 h-5 min-w-5 rounded-full px-1">{cartCount}</Badge>}
             </Button>
 
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>

@@ -332,8 +332,7 @@ import { AuthService } from "./authService";
     const response = await fetch(
       `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PRODUCT.PUBLIC_VERSION_SEARCH}?${queryParams.toString()}`,
       {
-        method: "GET",
-        next: { revalidate: 60 }, // Revalidate cache after 60 seconds
+        method: "GET"
       }
     );
 
@@ -342,6 +341,38 @@ import { AuthService } from "./authService";
       throw new Error(error.message || "Tìm kiếm sản phẩm thất bại");
     }
 
+    const result = await response.json();
+    return result.data;
+  }
+
+  /**
+   * Lấy chi tiết phiên bản sản phẩm công khai theo slug
+   */
+  export async function getPublicProductVersionDetail(slug: string) {
+    const response = await fetch(
+      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PRODUCT.PUBLIC_VERSION_BY_SLUG(slug)}`,
+      { method: "GET" }
+    );
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Lấy chi tiết phiên bản sản phẩm thất bại");
+    }
+    const result = await response.json();
+    return result.data;
+  }
+
+  /**
+   * Lấy danh sách phiên bản sản phẩm liên quan theo slug
+   */
+  export async function getRelatedPublicProductVersions(slug: string) {
+    const response = await fetch(
+      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PRODUCT.PUBLIC_VERSION_RELATED(slug)}`,
+      { method: "GET" }
+    );
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Lấy danh sách phiên bản liên quan thất bại");
+    }
     const result = await response.json();
     return result.data;
   }

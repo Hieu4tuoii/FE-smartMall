@@ -67,3 +67,28 @@ export interface ProductVersionResponse {
   createdAt: string;
   modifiedAt: string;
 }
+
+// Interface chi tiết phiên bản sản phẩm (từ API public /product/public/version/{slug})
+export interface ProductVersionDetailResponse {
+  id: string;
+  name: string; // tên đầy đủ: product name + version name
+  slug?: string;
+  price: number;
+  averageRating?: number;
+  totalRating?: number;
+  discountedPrice?: number;
+  discount?: number;
+  imageUrls: string[]; // danh sách ảnh (default đứng đầu)
+  description?: string;
+  model?: string;
+  warrantyPeriod?: number; // thời gian bảo hành (tháng)
+  specifications?: string | Record<string, string>[]; // chuỗi JSON hoặc mảng key-value
+  productVersionNames: { id: string; name: string; slug?: string }[]; // các version khác của cùng product
+  productColorVersions: ProductColorVersion[]; // danh sách màu
+}
+
+// Request update cart item (đồng bộ với backend)
+export interface UpdateCartItemRequest {
+  productColorVersionId: string;
+  quantity: number; // >= 0
+}
