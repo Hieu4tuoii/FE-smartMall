@@ -1,5 +1,11 @@
 import { API_CONFIG } from "@/configs/apiConfig";
-import { AuthResponse, LoginRequest } from "@/types/authType";
+import {
+  AuthResponse,
+  LoginRequest,
+  SignUpRequest,
+  ConfirmOtpRequest,
+  RegisterInformationRequest,
+} from "@/types/authType";
 import { CookieManager } from "@/lib/cookies";
 
 export class AuthService {
@@ -85,6 +91,78 @@ export class AuthService {
 
   static isAuthenticated(): boolean {
     return !!this.getToken();
+  }
+
+  /**
+   * Đăng ký tài khoản mới
+   * @param request - Thông tin đăng ký (email, password, rePassword)
+   * @returns userId của tài khoản vừa tạo
+   */
+  static async register(request: SignUpRequest): Promise<string> {
+    const response = await fetch(
+      `${this.baseUrl}${API_CONFIG.ENDPOINTS.AUTH.SIGN_UP}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Đăng ký thất bại");
+    }
+
+    const result = await response.json();
+    return result.data; // userId
+  }
+
+  /**
+   * Xác thực OTP
+   * @param request - Thông tin xác thực OTP (id, otp)
+   */
+  static async confirmOtp(request: ConfirmOtpRequest): Promise<void> {
+    const response = await fetch(
+      `${this.baseUrl}${API_CONFIG.ENDPOINTS.AUTH.CONFIRM_OTP}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Xác thực OTP thất bại");
+    }
+  }
+
+  /**
+   * Hoàn thiện thông tin đăng ký
+   * @param request - Thông tin người dùng (id, fullName, phoneNumber, address)
+   */
+  static async registerInformation(
+    request: RegisterInformationRequest
+  ): Promise<void> {
+    const response = await fetch(
+      `${this.baseUrl}${API_CONFIG.ENDPOINTS.AUTH.REGISTER_INFO}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Hoàn tất đăng ký thất bại");
+    }
   }
 }
 

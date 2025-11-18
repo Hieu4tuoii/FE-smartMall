@@ -1,11 +1,15 @@
+import { API_CONFIG } from "@/configs/apiConfig";
 import { CategoryRequest, CategoryResponse } from "@/types/Category";
+import { Category } from "@/types/Category";
+import { AuthService } from "./authService";
 
 /**
  * Lấy tất cả danh mục không phân trang
  */
- export async function listAllCategories(): Promise<CategoryResponse[]> {
+export async function listAllCategories(): Promise<CategoryResponse[]> {
   const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CATEGORY.ALL}`, {
     method: "GET",
+    cache: 'no-store' // Tắt cache để luôn lấy dữ liệu mới nhất
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.message || "Không thể tải danh sách danh mục");
@@ -65,10 +69,6 @@ export async function deleteCategory(id: string): Promise<void> {
     throw new Error(error.message || "Xóa danh mục thất bại");
   }
 }
-
-import { API_CONFIG } from "@/configs/apiConfig";
-import { Category } from "@/types/Category";
-import { AuthService } from "./authService";
 
 /**
  * Lấy danh sách tất cả danh mục (không phân trang)

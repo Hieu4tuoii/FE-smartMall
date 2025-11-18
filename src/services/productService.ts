@@ -332,7 +332,8 @@ import { AuthService } from "./authService";
     const response = await fetch(
       `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PRODUCT.PUBLIC_VERSION_SEARCH}?${queryParams.toString()}`,
       {
-        method: "GET"
+        method: "GET",
+        cache: 'no-store' // Tắt cache để luôn lấy dữ liệu mới nhất
       }
     );
 
@@ -351,7 +352,10 @@ import { AuthService } from "./authService";
   export async function getPublicProductVersionDetail(slug: string) {
     const response = await fetch(
       `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PRODUCT.PUBLIC_VERSION_BY_SLUG(slug)}`,
-      { method: "GET" }
+      { 
+        method: "GET",
+        cache: 'no-store' // Tắt cache để luôn lấy dữ liệu mới nhất
+      }
     );
     if (!response.ok) {
       const error = await response.json();
@@ -367,7 +371,10 @@ import { AuthService } from "./authService";
   export async function getRelatedPublicProductVersions(slug: string) {
     const response = await fetch(
       `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PRODUCT.PUBLIC_VERSION_RELATED(slug)}`,
-      { method: "GET" }
+      { 
+        method: "GET",
+        cache: 'no-store' // Tắt cache để luôn lấy dữ liệu mới nhất
+      }
     );
     if (!response.ok) {
       const error = await response.json();

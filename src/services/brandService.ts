@@ -8,7 +8,7 @@ import { BrandRequest, BrandResponse } from "@/types/Brand";
 export async function listAllBrands(): Promise<BrandResponse[]> {
   const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.BRAND.ALL}`, {
     method: "GET",
-    // next: { revalidate: 60 },
+    cache: 'no-store' // Tắt cache để luôn lấy dữ liệu mới nhất
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.message || "Không thể tải danh sách thương hiệu");

@@ -32,3 +32,21 @@ export interface JWTPayload {
   exp: number;
 }
 
+export interface SignUpRequest {
+  email: string;
+  password: string;
+  rePassword: string;
+}
+
+export interface ConfirmOtpRequest {
+  id: string;
+  otp: string;
+}
+
+export interface RegisterInformationRequest {
+  id: string;
+  fullName: string;
+  phoneNumber: string;
+  address: string;
+}
+

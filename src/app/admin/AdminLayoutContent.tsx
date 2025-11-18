@@ -3,7 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { Loader2, Users, UserCog, LayoutDashboard, Package, Truck, ShoppingCart, Tag, Image as ImageIcon, FolderTree, Award } from "lucide-react";
+import { Loader2, Users, UserCog, LayoutDashboard, Package, Truck, ShoppingCart, Tag, Image as ImageIcon, FolderTree, Award, Receipt } from "lucide-react";
 import Link from "next/link";
 
 export function AdminLayoutContent({
@@ -77,6 +77,11 @@ export function AdminLayoutContent({
       href: "/admin/import-orders",
       label: "Đơn nhập",
       icon: ShoppingCart,
+    },
+    {
+      href: "/admin/orders",
+      label: "Đơn hàng",
+      icon: Receipt,
     },
     {
       href: "/admin/promotions",

@@ -19,6 +19,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { AuthService } from "@/services/authService";
 
 // su dung form
 const formSchema = z.object({
@@ -40,6 +41,10 @@ function LoginForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [profile, setProfile] = useState({ fullName: "", phone: "", address: "" });
+  const [userId, setUserId] = useState<string>("");
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const { login } = useAuth();
   const router = useRouter();
@@ -69,28 +74,100 @@ function LoginForm() {
     }
   }
 
-  // Xử lý submit đăng ký: kiểm tra mật khẩu, chuyển sang bước OTP
-  function handleRegister(e: React.FormEvent) {
+  // Xử lý submit đăng ký: gọi API /sign-up và chuyển sang bước OTP
+  async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     if (password !== confirmPassword) {
       toast({ title: "Mật khẩu không khớp", variant: "destructive" });
       return;
     }
-    setStep("otp");
-  }
-
-  // Xử lý xác thực OTP: đủ 6 số thì sang bước cập nhật hồ sơ
-  function handleOTPVerify() {
-    if (otp.length === 6) {
-      setStep("profile");
+    if (password.length < 5) {
+      toast({ title: "Mật khẩu phải có ít nhất 5 ký tự", variant: "destructive" });
+      return;
+    }
+    setRegisterLoading(true);
+    try {
+      const id = await AuthService.register({
+        email,
+        password,
+        rePassword: confirmPassword,
+      });
+      setUserId(id);
+      setStep("otp");
+      toast({ title: "Đăng ký thành công", description: "Mã OTP đã được gửi đến email của bạn" });
+    } catch (error: any) {
+      toast({
+        title: "Đăng ký thất bại",
+        description: error?.message || "Vui lòng kiểm tra lại thông tin",
+        variant: "destructive",
+      });
+    } finally {
+      setRegisterLoading(false);
     }
   }
 
-  // Hoàn tất hồ sơ: hiển thị thông báo và đưa về trang chủ
-  function handleProfileComplete(e: React.FormEvent) {
+  // Xử lý xác thực OTP: gọi API /confirm-otp và chuyển sang bước cập nhật hồ sơ
+  async function handleOTPVerify() {
+    if (otp.length !== 6) {
+      toast({ title: "Vui lòng nhập đủ 6 số OTP", variant: "destructive" });
+      return;
+    }
+    if (!userId) {
+      toast({ title: "Lỗi hệ thống", description: "Không tìm thấy thông tin đăng ký", variant: "destructive" });
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      await AuthService.confirmOtp({ id: userId, otp });
+      setStep("profile");
+      toast({ title: "Xác thực OTP thành công", description: "Vui lòng hoàn thiện thông tin" });
+    } catch (error: any) {
+      toast({
+        title: "Xác thực OTP thất bại",
+        description: error?.message || "Mã OTP không đúng, vui lòng thử lại",
+        variant: "destructive",
+      });
+    } finally {
+      setOtpLoading(false);
+    }
+  }
+
+  // Hoàn tất hồ sơ: gọi API /register-information và chuyển về trang đăng nhập
+  async function handleProfileComplete(e: React.FormEvent) {
     e.preventDefault();
-    toast({ title: "Đăng ký thành công!" });
-    router.push("/");
+    if (!userId) {
+      toast({ title: "Lỗi hệ thống", description: "Không tìm thấy thông tin đăng ký", variant: "destructive" });
+      return;
+    }
+    setProfileLoading(true);
+    try {
+      await AuthService.registerInformation({
+        id: userId,
+        fullName: profile.fullName,
+        phoneNumber: profile.phone,
+        address: profile.address,
+      });
+      toast({ title: "Đăng ký thành công!", description: "Chào mừng bạn đến với SmartMall" });
+      
+      // Reset tất cả state về ban đầu và hiển thị lại form đăng nhập
+      setStep("form");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setOtp("");
+      setProfile({ fullName: "", phone: "", address: "" });
+      setUserId("");
+      
+      // Chờ một chút để toast hiển thị, sau đó form sẽ tự động hiển thị lại tab đăng nhập
+    } catch (error: any) {
+      toast({
+        title: "Hoàn tất đăng ký thất bại",
+        description: error?.message || "Vui lòng thử lại",
+        variant: "destructive",
+      });
+    } finally {
+      setProfileLoading(false);
+    }
   }
 
   return (
@@ -227,7 +304,8 @@ function LoginForm() {
                     </div>
                   </div>
 
-                  <Button type="submit" size="lg" className="w-full rounded-xl">
+                  <Button type="submit" size="lg" className="w-full rounded-xl" disabled={registerLoading}>
+                    <Loader2 className={`mr-2 h-4 w-4 animate-spin ${registerLoading ? "" : "hidden"}`} />
                     Đăng ký
                   </Button>
                 </form>
@@ -254,7 +332,8 @@ function LoginForm() {
                 />
               </div>
 
-              <Button size="lg" className="w-full rounded-xl" onClick={handleOTPVerify} disabled={otp.length !== 6}>
+              <Button size="lg" className="w-full rounded-xl" onClick={handleOTPVerify} disabled={otp.length !== 6 || otpLoading}>
+                <Loader2 className={`mr-2 h-4 w-4 animate-spin ${otpLoading ? "" : "hidden"}`} />
                 Xác nhận
               </Button>
 
@@ -320,7 +399,8 @@ function LoginForm() {
                   </div>
                 </div>
 
-                <Button type="submit" size="lg" className="w-full rounded-xl">
+                <Button type="submit" size="lg" className="w-full rounded-xl" disabled={profileLoading}>
+                  <Loader2 className={`mr-2 h-4 w-4 animate-spin ${profileLoading ? "" : "hidden"}`} />
                   Hoàn tất
                 </Button>
               </form>

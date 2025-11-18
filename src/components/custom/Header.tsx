@@ -39,7 +39,7 @@ export function Header({ categories }: { categories: CategoryResponse[] }) {
         <div className="flex items-center justify-between py-4 gap-4">
           <Link href="/" className={`flex items-center gap-3 shrink-0 ${searchOpen ? "hidden lg:flex" : "flex"}`}>
             <img
-              src="https://images.unsplash.com/photo-1633409361618-c73427e4e206?w=120&h=120&fit=crop"
+              src="/logo-smart-mall.png"
               alt="SmartMall Logo"
               className="w-10 h-10 rounded-xl object-cover"
             />

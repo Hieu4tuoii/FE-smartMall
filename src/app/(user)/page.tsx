@@ -16,7 +16,7 @@ export default async function Page() {
       hasPromotion: true,
       page: 0,
       size: 4,
-      sort: "modifiedAt:desc",
+      sort: "totalSold:desc",
     }),
     listAllCategoriesWithCache(),
   ]);
@@ -33,7 +33,7 @@ export default async function Page() {
       categoryIds: [category.id],
       page: 0,
       size: 5,
-      sort: "modifiedAt:desc",
+      sort: "totalSold:desc",
     });
     return {
       category,

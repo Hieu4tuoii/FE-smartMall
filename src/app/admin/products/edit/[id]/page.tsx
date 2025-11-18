@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getProductById, updateProduct } from "@/services/productService";
-import { getAllBrands } from "@/services/brandService";
+import { listAllBrands } from "@/services/brandService";
 import { getAllCategories } from "@/services/categoryService";
 import { uploadImage, getImageUrl } from "@/services/uploadService";
 import { CreateProductRequest, ImageRequest, Product } from "@/types/Product";
@@ -177,7 +177,7 @@ export default function EditProductPage() {
         
         const [productData, brandsData, categoriesData] = await Promise.all([
           getProductById(productId),
-          getAllBrands(),
+          listAllBrands(),
           getAllCategories()
         ]);
         

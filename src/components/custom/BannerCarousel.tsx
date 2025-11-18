@@ -37,7 +37,7 @@ export default function BannerCarousel({ banners }: BannerCarouselProps) {
   return (
     <Link href={href} className="block">
       <div className="relative w-full overflow-hidden rounded-xl">
-        <div className="relative w-full pt-[56.25%]">
+        <div className="relative w-full pt-[33.33%]">
           <Image
             src={getImageUrl(active.imageUrl)}
             alt="banner"

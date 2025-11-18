@@ -37,6 +37,7 @@ export const API_CONFIG = {
     CART: {
       COUNT: "/cart/count",
       UPDATE: "/cart/update",
+      DETAIL: "/cart/detail",
     },
     BRAND: {
       LIST: "/brand",
@@ -79,6 +80,16 @@ export const API_CONFIG = {
       UPDATE: (id: string) => `/promotion/${id}`,
       // DELETE /promotion/{id} - Xóa chương trình giảm giá (soft delete)
       DELETE: (id: string) => `/promotion/${id}`,
+    },
+    ORDER: {
+      // POST /order/create - Tạo đơn hàng
+      CREATE: "/order/create",
+      // GET /order/list - Lấy danh sách đơn hàng (admin)
+      LIST: "/order/list",
+      // GET /order/detail/{id} - Lấy chi tiết đơn hàng (admin)
+      DETAIL: (id: string) => `/order/detail/${id}`,
+      // PUT /order/update-status/{id} - Cập nhật trạng thái đơn hàng (admin)
+      UPDATE_STATUS: (id: string) => `/order/update-status/${id}`,
     },
   },
 } as const;
