@@ -13,6 +13,7 @@ import {
   UpdateProductColorVersionRequest,
   ProductVersionResponse
 } from "@/types/ProductVersion";
+import { ProductItemAdmin, ProductItemStatus } from "@/types/ProductItem";
 import { AuthService } from "./authService";
 
 
@@ -380,6 +381,48 @@ import { AuthService } from "./authService";
       const error = await response.json();
       throw new Error(error.message || "Lấy danh sách phiên bản liên quan thất bại");
     }
+    const result = await response.json();
+    return result.data;
+  }
+
+  interface GetProductItemsParams {
+    colorVersionId: string;
+    status?: ProductItemStatus;
+    page?: number;
+    size?: number;
+    sort?: string;
+    imeiOrSerial?: string;
+  }
+
+  export async function getProductItemsByColorVersionId(params: GetProductItemsParams): Promise<PageResponse<ProductItemAdmin>> {
+    const {
+      colorVersionId,
+      status,
+      page,
+      size,
+      sort,
+      imeiOrSerial
+    } = params;
+
+    const queryParams = new URLSearchParams();
+    if (status) queryParams.append("status", status);
+    if (page !== undefined) queryParams.append("page", page.toString());
+    if (size !== undefined) queryParams.append("size", size.toString());
+    if (sort) queryParams.append("sort", sort);
+    if (imeiOrSerial) queryParams.append("imeiOrSerial", imeiOrSerial);
+
+    const response = await AuthService.fetchWithAuth(
+      `${API_CONFIG.ENDPOINTS.PRODUCT.COLOR_VERSION.ITEMS(colorVersionId)}?${queryParams.toString()}`,
+      {
+        method: "GET",
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Lấy danh sách sản phẩm tồn kho thất bại");
+    }
+
     const result = await response.json();
     return result.data;
   }

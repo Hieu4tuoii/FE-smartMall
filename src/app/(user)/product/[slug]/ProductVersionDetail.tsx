@@ -12,19 +12,16 @@ import { toast } from "@/hooks/use-toast";
 import { updateCartItem } from "@/services/cartService";
 import { getImageUrl } from "@/services/uploadService";
 import Link from "next/link";
+import ReviewsSection from "./ReviewsSection";
+import type { ReviewListResponse } from "@/types/Review";
 
 type Props = {
   detail: ProductVersionDetailResponse;
   related: ProductVersionResponse[];
+  reviewsData: ReviewListResponse;
 };
 
-const reviews = [
-  { id: 1, userName: "Nguyễn Văn A", rating: 5, comment: "Sản phẩm rất tốt, giao hàng nhanh", date: "2025-10-10", avatar: "https://i.pravatar.cc/150?img=1" },
-  { id: 2, userName: "Trần Thị B", rating: 5, comment: "Máy đẹp, chạy mượt, camera chụp đẹp", date: "2025-10-12", avatar: "https://i.pravatar.cc/150?img=2" },
-  { id: 3, userName: "Lê Văn C", rating: 4, comment: "Tốt nhưng hơi đắt", date: "2025-10-14", avatar: "https://i.pravatar.cc/150?img=3" },
-];
-
-export default function ProductVersionDetail({ detail, related }: Props) {
+export default function ProductVersionDetail({ detail, related, reviewsData }: Props) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
@@ -261,6 +258,9 @@ export default function ProductVersionDetail({ detail, related }: Props) {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Section đánh giá */}
+      <ReviewsSection reviewsData={reviewsData} />
 
       {related && related.length > 0 && (
         <section>

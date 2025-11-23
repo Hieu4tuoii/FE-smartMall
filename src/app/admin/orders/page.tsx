@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getAdminOrderList } from "@/services/adminOrderService";
-import { AdminOrderResponse, OrderStatus } from "@/types/Order";
+import { AdminOrderResponse, OrderStatus, PaymentMethod, PaymentStatus } from "@/types/Order";
 import { PageResponse } from "@/types/apiTypes";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -115,6 +115,36 @@ export default function OrdersPage() {
       case OrderStatus.DELIVERED:
         return { label: "Hoàn thành", className: "bg-green-100 text-green-800 border-green-200" };
       case OrderStatus.CANCELLED:
+        return { label: "Đã hủy", className: "bg-gray-100 text-gray-800 border-gray-200" };
+      default:
+        return { label: status, className: "bg-gray-100 text-gray-800 border-gray-200" };
+    }
+  };
+
+  /**
+   * Lấy text cho hình thức thanh toán
+   */
+  const getPaymentMethodLabel = (method: PaymentMethod) => {
+    switch (method) {
+      case PaymentMethod.CASH:
+        return "Tiền mặt";
+      case PaymentMethod.BANK_TRANSFER:
+        return "Chuyển khoản";
+      default:
+        return method;
+    }
+  };
+
+  /**
+   * Lấy màu và text cho badge trạng thái thanh toán
+   */
+  const getPaymentStatusBadge = (status: PaymentStatus) => {
+    switch (status) {
+      case PaymentStatus.PAID:
+        return { label: "Đã thanh toán", className: "bg-green-100 text-green-800 border-green-200" };
+      case PaymentStatus.UNPAID:
+        return { label: "Chưa thanh toán", className: "bg-red-100 text-red-800 border-red-200" };
+      case PaymentStatus.CANCELLED:
         return { label: "Đã hủy", className: "bg-gray-100 text-gray-800 border-gray-200" };
       default:
         return { label: status, className: "bg-gray-100 text-gray-800 border-gray-200" };
@@ -268,6 +298,8 @@ export default function OrdersPage() {
                     <TableHead>Khách hàng</TableHead>
                     <TableHead>Sản phẩm</TableHead>
                     <TableHead>Tổng tiền</TableHead>
+                    <TableHead>Hình thức thanh toán</TableHead>
+                    <TableHead>Trạng thái thanh toán</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead>Ngày đặt</TableHead>
                     <TableHead className="text-right">Thao tác</TableHead>
@@ -276,13 +308,14 @@ export default function OrdersPage() {
                 <TableBody>
                   {orders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                         Không có đơn hàng nào
                       </TableCell>
                     </TableRow>
                   ) : (
                     orders.map((order) => {
                       const statusBadge = getStatusBadge(order.status);
+                      const paymentStatusBadge = getPaymentStatusBadge(order.paymentStatus);
                       return (
                         <TableRow key={order.id}>
                           <TableCell className="font-medium text-blue-600">
@@ -297,6 +330,14 @@ export default function OrdersPage() {
                           <TableCell>{renderProducts(order.products)}</TableCell>
                           <TableCell className="font-medium">
                             {formatCurrency(order.totalPrice)}
+                          </TableCell>
+                          <TableCell>
+                            {getPaymentMethodLabel(order.paymentMethod)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={paymentStatusBadge.className}>
+                              {paymentStatusBadge.label}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className={statusBadge.className}>

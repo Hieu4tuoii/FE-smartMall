@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +8,23 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Plus, Edit, Trash2, Palette } from "lucide-react";
+import { Plus, Edit, Trash2, Palette, Boxes, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { 
   ProductVersion, 
@@ -27,9 +42,16 @@ import {
   updateProductColorVersion,
   deleteProductVersion,
   deleteProductColorVersion,
-  getProductById
+  getProductById,
+  getProductItemsByColorVersionId
 } from "@/services/productService";
 import { Product } from "@/types/Product";
+import { PageResponse } from "@/types/apiTypes";
+import { ProductItemAdmin, ProductItemStatus } from "@/types/ProductItem";
+import { stringToSlug } from "@/utils/commonUtils";
+
+type InventoryStatusFilter = ProductItemStatus | "ALL";
+const INVENTORY_PAGE_SIZE = 10;
 
 export default function VersionManagerPage() {
   const params = useParams();
@@ -46,6 +68,22 @@ export default function VersionManagerPage() {
   const [isEditColorOpen, setIsEditColorOpen] = useState(false);
   const [selectedVersionId, setSelectedVersionId] = useState<string>("");
   const [selectedColorId, setSelectedColorId] = useState<string>("");
+  const [inventoryDialog, setInventoryDialog] = useState<{
+    open: boolean;
+    color: ProductColorVersion | null;
+  }>({ open: false, color: null });
+  const [inventoryFilters, setInventoryFilters] = useState<{
+    status: InventoryStatusFilter;
+    search: string;
+    page: number;
+  }>({
+    status: "ALL",
+    search: "",
+    page: 0,
+  });
+  const [inventorySearchKeyword, setInventorySearchKeyword] = useState("");
+  const [inventoryData, setInventoryData] = useState<PageResponse<ProductItemAdmin> | null>(null);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
   
   // Confirm dialog states
   const [confirmDeleteVersion, setConfirmDeleteVersion] = useState<{
@@ -78,20 +116,6 @@ export default function VersionManagerPage() {
     color: "",
     sku: ""
   });
-
-  // Hàm chuyển đổi string sang slug format
-  const stringToSlug = (str: string): string => {
-    return str
-      .toLowerCase()
-      .trim()
-      .normalize('NFD') // Tách dấu tiếng Việt khỏi ký tự gốc
-      .replace(/[\u0300-\u036f]/g, '') // Loại bỏ toàn bộ dấu thanh
-      .replace(/đ/g, 'd') // thay đ → d
-      .replace(/[^a-z0-9\s-]/g, '') // Loại bỏ ký tự đặc biệt còn lại
-      .replace(/[\s_]+/g, '-') // Thay khoảng trắng/underscore bằng gạch ngang
-      .replace(/-+/g, '-') // Gom nhiều gạch ngang liên tiếp thành một
-      .replace(/^-+|-+$/g, ''); // Loại bỏ gạch ở đầu/cuối
-  };
 
   // Fetch data từ API
   useEffect(() => {
@@ -377,6 +401,90 @@ export default function VersionManagerPage() {
     }
   };
 
+  const handleOpenInventoryDialog = (color: ProductColorVersion) => {
+    setInventoryDialog({ open: true, color });
+    setInventoryFilters((prev) => ({
+      ...prev,
+      status: "ALL",
+      search: "",
+      page: 0,
+    }));
+    setInventorySearchKeyword("");
+  };
+
+  const handleCloseInventoryDialog = () => {
+    setInventoryDialog({ open: false, color: null });
+    setInventoryFilters({
+      status: "ALL",
+      search: "",
+      page: 0,
+    });
+    setInventorySearchKeyword("");
+    setInventoryData(null);
+  };
+
+  const handleInventorySearchSubmit = (event?: FormEvent) => {
+    event?.preventDefault();
+    setInventoryFilters((prev) => ({
+      ...prev,
+      search: inventorySearchKeyword.trim(),
+      page: 0,
+    }));
+  };
+
+  const handleInventoryStatusChange = (value: InventoryStatusFilter) => {
+    setInventoryFilters((prev) => ({
+      ...prev,
+      status: value,
+      page: 0,
+    }));
+  };
+
+  const handleInventoryPageChange = (newPage: number) => {
+    if (newPage < 0) return;
+    if (inventoryData && newPage > inventoryData.totalPage - 1) return;
+    setInventoryFilters((prev) => ({
+      ...prev,
+      page: newPage,
+    }));
+  };
+
+  useEffect(() => {
+    if (!inventoryDialog.open || !inventoryDialog.color) return;
+
+    const fetchProductItems = async () => {
+      try {
+        setInventoryLoading(true);
+        const data = await getProductItemsByColorVersionId({
+          colorVersionId: inventoryDialog.color!.id,
+          status: inventoryFilters.status === "ALL" ? undefined : inventoryFilters.status,
+          page: inventoryFilters.page,
+          size: INVENTORY_PAGE_SIZE,
+          sort: "createdAt,desc",
+          imeiOrSerial: inventoryFilters.search || undefined,
+        });
+        setInventoryData(data);
+      } catch (error: any) {
+        console.error("Lỗi khi lấy danh sách sản phẩm tồn kho:", error);
+        toast({
+          title: "Lỗi",
+          description: error.message || "Không thể tải danh sách sản phẩm tồn kho",
+        });
+      } finally {
+        setInventoryLoading(false);
+      }
+    };
+
+    fetchProductItems();
+  }, [
+    inventoryDialog.open,
+    inventoryDialog.color?.id,
+    inventoryFilters.page,
+    inventoryFilters.search,
+    inventoryFilters.status,
+    toast,
+  ]);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -386,6 +494,22 @@ export default function VersionManagerPage() {
 
   const formatNumber = (value: number | undefined) => {
     return new Intl.NumberFormat('vi-VN').format(value ?? 0);
+  };
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return "-";
+    return new Intl.DateTimeFormat("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(value));
+  };
+
+  const statusLabel: Record<ProductItemStatus, string> = {
+    IN_STOCK: "Tồn kho",
+    SOLD: "Đã bán",
   };
 
   if (loading) {
@@ -601,6 +725,15 @@ export default function VersionManagerPage() {
                         <Button 
                           variant="ghost" 
                           size="sm"
+                          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                          onClick={() => handleOpenInventoryDialog(color)}
+                          title="Quản lý kho"
+                        >
+                          <Boxes className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
                           className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                           title="Chỉnh sửa màu sắc"
                           onClick={() => handleEditColorClick(color)}
@@ -751,6 +884,146 @@ export default function VersionManagerPage() {
         onConfirm={handleDeleteColorConfirm}
         variant="destructive"
       />
+
+      <Dialog open={inventoryDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          handleCloseInventoryDialog();
+        }
+      }}>
+        <DialogContent className="!max-w-5xl !w-full !max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Quản lý kho - {inventoryDialog.color?.color}</DialogTitle>
+            {inventoryDialog.color && (
+              <p className="text-sm text-gray-500">
+                SKU: <span className="font-medium">{inventoryDialog.color.sku}</span> ·
+                Tồn kho: <span className="font-medium">{formatNumber(inventoryDialog.color.totalStock)}</span> ·
+                Đã bán: <span className="font-medium">{formatNumber(inventoryDialog.color.totalSold)}</span>
+              </p>
+            )}
+          </DialogHeader>
+          <div className="space-y-4 overflow-y-auto pr-2 max-h-[70vh]">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <form onSubmit={handleInventorySearchSubmit} className="flex flex-1 gap-2">
+                <Input
+                  placeholder="Tìm theo IMEI/Serial"
+                  value={inventorySearchKeyword}
+                  onChange={(e) => setInventorySearchKeyword(e.target.value)}
+                />
+                {/* <Button type="submit" variant="secondary">
+                  Tìm kiếm
+                </Button> */}
+              </form>
+
+              <div className="min-w-[180px]">
+                <Select
+                  value={inventoryFilters.status}
+                  onValueChange={(value) => handleInventoryStatusChange(value as InventoryStatusFilter)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Trạng thái" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+                    <SelectItem value="IN_STOCK">Tồn kho</SelectItem>
+                    <SelectItem value="SOLD">Đã bán</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>IMEI / Serial</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead>Ngày nhập</TableHead>
+                    <TableHead>Ngày kích hoạt BH</TableHead>
+                    <TableHead>Ngày hết hạn BH</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {inventoryLoading && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center">
+                        <div className="flex items-center justify-center gap-2 py-4 text-sm text-gray-500">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Đang tải dữ liệu kho...
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+
+                  {!inventoryLoading && (!inventoryData || inventoryData.items.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-6 text-sm text-gray-500">
+                        Không có sản phẩm nào phù hợp với điều kiện tìm kiếm
+                      </TableCell>
+                    </TableRow>
+                  )}
+
+                  {!inventoryLoading && inventoryData?.items.map((item) => {
+                    const isSold = item.status === "SOLD";
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.imeiOrSerial}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              isSold
+                                ? "bg-red-50 text-red-700 border-red-200"
+                                : "bg-green-50 text-green-700 border-green-200"
+                            }
+                          >
+                            {statusLabel[item.status]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{formatDateTime(item.createdAt)}</TableCell>
+                        <TableCell>
+                          {isSold ? formatDateTime(item.warrantyActivationDate) : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {isSold ? formatDateTime(item.warrantyExpirationDate) : "-"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {inventoryData && inventoryData.totalPage > 0 && (
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <span>
+                  Trang {inventoryFilters.page + 1} / {inventoryData.totalPage || 1}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleInventoryPageChange(inventoryFilters.page - 1)}
+                    disabled={inventoryFilters.page === 0 || inventoryLoading}
+                  >
+                    Trước
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleInventoryPageChange(inventoryFilters.page + 1)}
+                    disabled={
+                      inventoryLoading ||
+                      inventoryFilters.page >= (inventoryData.totalPage - 1)
+                    }
+                  >
+                    Sau
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

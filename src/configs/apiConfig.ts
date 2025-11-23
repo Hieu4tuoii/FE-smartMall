@@ -32,6 +32,7 @@ export const API_CONFIG = {
         CREATE: "/product/color-version",
         UPDATE: (id: string) => `/product/color-version/${id}`,
         DELETE: (id: string) => `/product/color-version/${id}`,
+        ITEMS: (id: string) => `/product/color-version/${id}/items`,
       },
     },
     CART: {
@@ -86,10 +87,18 @@ export const API_CONFIG = {
       CREATE: "/order/create",
       // GET /order/list - Lấy danh sách đơn hàng (admin)
       LIST: "/order/list",
+      // GET /order/list/current-user - Lấy danh sách đơn hàng của user hiện tại
+      LIST_CURRENT_USER: "/order/list/current-user",
       // GET /order/detail/{id} - Lấy chi tiết đơn hàng (admin)
       DETAIL: (id: string) => `/order/detail/${id}`,
       // PUT /order/update-status/{id} - Cập nhật trạng thái đơn hàng (admin)
       UPDATE_STATUS: (id: string) => `/order/update-status/${id}`,
+    },
+    REVIEW: {
+      // POST /review/create - Tạo đánh giá
+      CREATE: "/review/create",
+      // GET /review/public/list/{productVersionId} - Lấy danh sách đánh giá công khai
+      PUBLIC_LIST: (productVersionId: string) => `/review/public/list/${productVersionId}`,
     },
   },
 } as const;

@@ -326,7 +326,7 @@ export default function EditProductPage() {
   if (loadingProduct) {
     return (
       <div className="p-8">
-        <div className="max-w-4xl mx-auto">
+        <div className=" ">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
@@ -340,7 +340,7 @@ export default function EditProductPage() {
 
   return (
     <div className="p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className=" ">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" onClick={handleBack} className="gap-2">

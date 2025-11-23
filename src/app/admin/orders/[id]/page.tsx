@@ -10,6 +10,8 @@ import {
   AdminOrderDetailResponse,
   OrderStatus,
   ProductItemImeiPayload,
+  PaymentMethod,
+  PaymentStatus,
 } from "@/types/Order";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -115,6 +117,36 @@ export default function OrderDetailPage() {
           label: status,
           className: "bg-gray-100 text-gray-800 border-gray-200",
         };
+    }
+  };
+
+  /**
+   * Lấy text cho hình thức thanh toán
+   */
+  const getPaymentMethodLabel = (method: PaymentMethod) => {
+    switch (method) {
+      case PaymentMethod.CASH:
+        return "Tiền mặt";
+      case PaymentMethod.BANK_TRANSFER:
+        return "Chuyển khoản";
+      default:
+        return method;
+    }
+  };
+
+  /**
+   * Lấy màu và text cho badge trạng thái thanh toán
+   */
+  const getPaymentStatusBadge = (status: PaymentStatus) => {
+    switch (status) {
+      case PaymentStatus.PAID:
+        return { label: "Đã thanh toán", className: "bg-green-100 text-green-800 border-green-200" };
+      case PaymentStatus.UNPAID:
+        return { label: "Chưa thanh toán", className: "bg-red-100 text-red-800 border-red-200" };
+      case PaymentStatus.CANCELLED:
+        return { label: "Đã hủy", className: "bg-gray-100 text-gray-800 border-gray-200" };
+      default:
+        return { label: status, className: "bg-gray-100 text-gray-800 border-gray-200" };
     }
   };
 
@@ -321,11 +353,9 @@ export default function OrderDetailPage() {
   if (loading) {
     return (
       <div className="p-8">
-        <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-center p-12">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
-        </div>
       </div>
     );
   }
@@ -336,7 +366,7 @@ export default function OrderDetailPage() {
 
   return (
     <div className="p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className=" ">
         {/* Header với nút X và trạng thái */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -370,6 +400,35 @@ export default function OrderDetailPage() {
         </div>
 
         {renderActionButtons()}
+
+        {/* Thông tin đơn hàng */}
+        <div className="bg-gray-50 rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Thông tin đơn hàng</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <div className="text-sm text-gray-500 mb-1">Hình thức thanh toán</div>
+              <div className="font-medium">{getPaymentMethodLabel(orderDetail.paymentMethod)}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500 mb-1">Trạng thái thanh toán</div>
+              <Badge variant="outline" className={getPaymentStatusBadge(orderDetail.paymentStatus).className}>
+                {getPaymentStatusBadge(orderDetail.paymentStatus).label}
+              </Badge>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500 mb-1">Trạng thái đơn hàng</div>
+              <Badge variant="outline" className={statusBadge.className}>
+                {statusBadge.label}
+              </Badge>
+            </div>
+            {orderDetail.note && (
+              <div>
+                <div className="text-sm text-gray-500 mb-1">Ghi chú</div>
+                <div className="font-medium">{orderDetail.note}</div>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Thông tin khách hàng */}
         <div className="bg-gray-50 rounded-lg p-6 mb-6">

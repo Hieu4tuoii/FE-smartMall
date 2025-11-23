@@ -102,3 +102,30 @@ export interface UpdateOrderStatusRequest {
   productItemImeiList?: ProductItemImeiPayload[];
 }
 
+// Interface cho ProductOrderResponse từ API /order/list/current-user (user)
+export interface UserProductOrderResponse {
+  orderItemId: string;
+  productName: string;
+  productVersionName: string;
+  colorName: string;
+  price: number;
+  imeiOrSerial: string;
+  imageUrl: string;
+  slug: string;
+}
+
+// Interface cho OrderResponse từ API /order/list/current-user (user)
+export interface UserOrderResponse {
+  id: string;
+  status: OrderStatus;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  totalPrice: number;
+  note?: string;
+  address: string;
+  phoneNumber: string;
+  products: UserProductOrderResponse[];
+  createdAt: string;
+  modifiedAt: string;
+}
+
