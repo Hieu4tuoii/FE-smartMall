@@ -94,11 +94,23 @@ export const API_CONFIG = {
       // PUT /order/update-status/{id} - Cập nhật trạng thái đơn hàng (admin)
       UPDATE_STATUS: (id: string) => `/order/update-status/${id}`,
     },
+    BANK: {
+      // GET /bank/check/{orderId} - Kiểm tra trạng thái thanh toán banking
+      CHECK: (orderId: string) => `/bank/check/${orderId}`,
+    },
     REVIEW: {
       // POST /review/create - Tạo đánh giá
       CREATE: "/review/create",
       // GET /review/public/list/{productVersionId} - Lấy danh sách đánh giá công khai
       PUBLIC_LIST: (productVersionId: string) => `/review/public/list/${productVersionId}`,
+    },
+    CHAT: {
+      // POST /chat/ - Gửi tin nhắn chat
+      SEND: "/chat/",
+      // GET /chat/history - Lấy lịch sử chat
+      HISTORY: "/chat/history",
+      // DELETE /chat/history - Xóa toàn bộ lịch sử chat
+      DELETE_HISTORY: "/chat/history",
     },
   },
 } as const;

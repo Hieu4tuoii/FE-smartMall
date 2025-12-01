@@ -2,6 +2,7 @@ import "../globals.css";
 import { ClientProviders } from "@/components/providers/ClientProviders";
 import { Header } from "@/components/custom/Header";
 import { Footer } from "@/components/custom/Footer";
+import { ChatBot } from "@/components/custom/ChatBot";
 import { listAllCategoriesWithCache } from "@/services/categoryService";
 
 export default async function RootLayout({
@@ -18,6 +19,7 @@ export default async function RootLayout({
             <Header categories={categories} />
             <main>{children}</main>
             <Footer />
+            <ChatBot />
           </div>
         </ClientProviders>
       </body>
