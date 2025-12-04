@@ -20,6 +20,32 @@ export enum PaymentStatus {
   CANCELLED = "CANCELLED",
 }
 
+// Enum cho loại yêu cầu trả/đổi/bảo hành
+export enum ReturnRequestType {
+  EXCHANGE = "EXCHANGE",
+  RETURN = "RETURN",
+  WARRANTY = "WARRANTY",
+}
+
+// Enum cho trạng thái bảo hành
+export enum WarrantyStatus {
+  PENDING = "PENDING",
+  CONFIRMED = "CONFIRMED",
+  IN_WARRANTY = "IN_WARRANTY",
+  RETURNING = "RETURNING",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+}
+
+// Enum cho trạng thái trả hàng
+export enum ReturnRequestStatus {
+  PENDING = "PENDING",
+  CONFIRMED = "CONFIRMED",
+  REFUNDING = "REFUNDING",
+  REFUNDED = "REFUNDED",
+  CANCELLED = "CANCELLED",
+}
+
 // Interface cho OrderRequest gửi lên API (tạo đơn hàng)
 export interface OrderRequest {
   phoneNumber: string;
@@ -112,6 +138,7 @@ export interface UserProductOrderResponse {
   imeiOrSerial: string;
   imageUrl: string;
   slug: string;
+  returnRequestType?: ReturnRequestType;
 }
 
 // Interface cho OrderResponse từ API /order/list/current-user (user)
@@ -127,5 +154,67 @@ export interface UserOrderResponse {
   products: UserProductOrderResponse[];
   createdAt: string;
   modifiedAt: string;
+}
+
+// Request tạo yêu cầu trả/đổi/bảo hành
+export interface ReturnRequestRequest {
+  orderItemId: string;
+  returnRequestType: ReturnRequestType;
+  reason?: string;
+  phoneNumber?: string;
+  address?: string;
+}
+
+// Interface cho thông tin sản phẩm trong yêu cầu bảo hành/trả hàng
+export interface ProductWarrantyResponse {
+  orderItemId: string;
+  productName: string;
+  productVersionName: string;
+  colorName: string;
+  imeiOrSerial: string;
+  imageUrl: string;
+}
+
+export interface ProductReturnResponse {
+  orderItemId: string;
+  productName: string;
+  productVersionName: string;
+  colorName: string;
+  imeiOrSerial: string;
+  imageUrl: string;
+}
+
+// Interface cho yêu cầu bảo hành
+export interface WarrantyClaimResponse {
+  id: string;
+  orderId: string;
+  status: WarrantyStatus;
+  reason: string;
+  phoneNumber: string;
+  address: string;
+  createdAt: string;
+  product: ProductWarrantyResponse;
+}
+
+// Interface cho yêu cầu trả hàng
+export interface ReturnRequestResponse {
+  id: string;
+  orderId: string;
+  status: ReturnRequestStatus;
+  reason: string;
+  phoneNumber?: string;
+  address?: string;
+  createdAt: string;
+  product: ProductReturnResponse;
+}
+
+// Request cập nhật trạng thái bảo hành
+export interface UpdateWarrantyStatusRequest {
+  status: WarrantyStatus;
+}
+
+// Request cập nhật trạng thái trả hàng
+export interface UpdateReturnRequestStatusRequest {
+  status: ReturnRequestStatus;
 }
 

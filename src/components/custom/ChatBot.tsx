@@ -11,6 +11,7 @@ import { ChatService } from "@/services/chatService";
 import type { ChatHistoryResponse } from "@/types/Chat";
 import { ProductConsultingCard } from "./ProductConsultingCard";
 import { useAuth } from "@/contexts/AuthContext";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 /**
  * Component ChatBot - Floating button và popup chat window
@@ -271,10 +272,9 @@ export function ChatBot() {
           <div className="max-w-[80%] rounded-lg px-4 py-3 bg-muted">
             <div className="space-y-2">
               <div className="w-full max-w-[200px] aspect-square bg-white border-2 rounded-lg p-3 flex items-center justify-center relative">
-                <Image
+                <ImageWithFallback
                   src={message.content}
                   alt="QR thanh toán"
-                  fill
                   className="object-contain rounded"
                   unoptimized
                 />

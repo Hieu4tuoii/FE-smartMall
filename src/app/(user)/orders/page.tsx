@@ -8,15 +8,33 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageWithFallback } from "@/components/custom/figma/ImageWithFallback";
 import { toast } from "@/hooks/use-toast";
 import { getImageUrl } from "@/services/uploadService";
-import { getOrderListByCurrentUser, cancelOrder } from "@/services/orderService";
+import { 
+  getOrderListByCurrentUser, 
+  cancelOrder, 
+  createReturnRequest,
+  getWarrantyClaimListByCurrentUser,
+  getReturnRequestListByCurrentUser
+} from "@/services/orderService";
 import { createReview } from "@/services/reviewService";
 import { getPublicProductVersionDetail } from "@/services/productService";
-import type { UserOrderResponse } from "@/types/Order";
-import { OrderStatus, PaymentMethod, PaymentStatus } from "@/types/Order";
+import type { 
+  UserOrderResponse,
+  WarrantyClaimResponse,
+  ReturnRequestResponse
+} from "@/types/Order";
+import { 
+  OrderStatus, 
+  PaymentMethod, 
+  PaymentStatus, 
+  ReturnRequestType,
+  WarrantyStatus,
+  ReturnRequestStatus
+} from "@/types/Order";
 import type { ReviewCreationRequest } from "@/types/Review";
 import { 
   formatCurrency, 
@@ -28,12 +46,98 @@ import {
   getPaymentStatusColor 
 } from "@/utils/commonUtils";
 
-const mockWarranties = [
-  { id: "BH1729075200001", productName: "iPhone 14 Pro", startDate: "2024-10-16", endDate: "2025-10-16", status: "active", statusText: "Còn hạn" },
-];
+/**
+ * Hàm lấy màu badge cho trạng thái bảo hành
+ */
+function getWarrantyStatusColor(status: WarrantyStatus): string {
+  switch (status) {
+    case WarrantyStatus.PENDING:
+      return "bg-yellow-500 hover:bg-yellow-600";
+    case WarrantyStatus.CONFIRMED:
+      return "bg-blue-500 hover:bg-blue-600";
+    case WarrantyStatus.IN_WARRANTY:
+      return "bg-purple-500 hover:bg-purple-600";
+    case WarrantyStatus.RETURNING:
+      return "bg-orange-500 hover:bg-orange-600";
+    case WarrantyStatus.COMPLETED:
+      return "bg-green-500 hover:bg-green-600";
+    case WarrantyStatus.CANCELLED:
+      return "bg-gray-500 hover:bg-gray-600";
+    default:
+      return "bg-gray-500 hover:bg-gray-600";
+  }
+}
+
+/**
+ * Hàm lấy text cho trạng thái bảo hành
+ */
+function getWarrantyStatusText(status: WarrantyStatus): string {
+  switch (status) {
+    case WarrantyStatus.PENDING:
+      return "Đang chờ";
+    case WarrantyStatus.CONFIRMED:
+      return "Đã xác nhận";
+    case WarrantyStatus.IN_WARRANTY:
+      return "Đang bảo hành";
+    case WarrantyStatus.RETURNING:
+      return "Đang hoàn hàng";
+    case WarrantyStatus.COMPLETED:
+      return "Đã bảo hành";
+    case WarrantyStatus.CANCELLED:
+      return "Đã hủy";
+    default:
+      return "Không xác định";
+  }
+}
+
+/**
+ * Hàm lấy màu badge cho trạng thái trả hàng
+ */
+function getReturnStatusColor(status: ReturnRequestStatus): string {
+  switch (status) {
+    case ReturnRequestStatus.PENDING:
+      return "bg-yellow-500 hover:bg-yellow-600";
+    case ReturnRequestStatus.CONFIRMED:
+      return "bg-blue-500 hover:bg-blue-600";
+    case ReturnRequestStatus.REFUNDING:
+      return "bg-orange-500 hover:bg-orange-600";
+    case ReturnRequestStatus.REFUNDED:
+      return "bg-green-500 hover:bg-green-600";
+    case ReturnRequestStatus.CANCELLED:
+      return "bg-gray-500 hover:bg-gray-600";
+    default:
+      return "bg-gray-500 hover:bg-gray-600";
+  }
+}
+
+/**
+ * Hàm lấy text cho trạng thái trả hàng
+ */
+function getReturnStatusText(status: ReturnRequestStatus): string {
+  switch (status) {
+    case ReturnRequestStatus.PENDING:
+      return "Đang chờ";
+    case ReturnRequestStatus.CONFIRMED:
+      return "Đã xác nhận";
+    case ReturnRequestStatus.REFUNDING:
+      return "Đang hoàn tiền";
+    case ReturnRequestStatus.REFUNDED:
+      return "Đã hoàn tiền";
+    case ReturnRequestStatus.CANCELLED:
+      return "Đã hủy";
+    default:
+      return "Không xác định";
+  }
+}
 
 type RequestType = "warranty" | "exchange" | "return";
-interface SelectedItem { orderId: string; itemName: string; itemImage: string; emeiSerial: string; }
+interface SelectedItem { 
+  orderId: string; 
+  orderItemId: string;
+  itemName: string; 
+  itemImage: string; 
+  emeiSerial: string; 
+}
 
 export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState("orders");
@@ -41,9 +145,16 @@ export default function OrdersPage() {
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [requestType, setRequestType] = useState<RequestType>("warranty");
   const [reason, setReason] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [address, setAddress] = useState("");
   const [images, setImages] = useState<File[]>([]);
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [orders, setOrders] = useState<UserOrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [warrantyClaims, setWarrantyClaims] = useState<WarrantyClaimResponse[]>([]);
+  const [returnRequests, setReturnRequests] = useState<ReturnRequestResponse[]>([]);
+  const [loadingWarranty, setLoadingWarranty] = useState(false);
+  const [loadingReturn, setLoadingReturn] = useState(false);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [reviewProduct, setReviewProduct] = useState<{ slug: string; name: string; imageUrl: string } | null>(null);
   const [reviewRating, setReviewRating] = useState<number>(0);
@@ -77,6 +188,58 @@ export default function OrdersPage() {
 
     fetchOrders();
   }, []);
+
+  /**
+   * Fetch danh sách bảo hành khi tab được chọn
+   */
+  useEffect(() => {
+    if (activeTab === "warranty") {
+      const fetchWarrantyClaims = async () => {
+        try {
+          setLoadingWarranty(true);
+          const data = await getWarrantyClaimListByCurrentUser();
+          setWarrantyClaims(data);
+        } catch (error: any) {
+          console.error("Lỗi khi lấy danh sách bảo hành:", error);
+          toast({
+            title: "Lỗi",
+            description: error.message || "Không thể tải danh sách bảo hành",
+            variant: "destructive",
+          });
+          setWarrantyClaims([]);
+        } finally {
+          setLoadingWarranty(false);
+        }
+      };
+      fetchWarrantyClaims();
+    }
+  }, [activeTab]);
+
+  /**
+   * Fetch danh sách trả hàng khi tab được chọn
+   */
+  useEffect(() => {
+    if (activeTab === "return") {
+      const fetchReturnRequests = async () => {
+        try {
+          setLoadingReturn(true);
+          const data = await getReturnRequestListByCurrentUser();
+          setReturnRequests(data);
+        } catch (error: any) {
+          console.error("Lỗi khi lấy danh sách trả hàng:", error);
+          toast({
+            title: "Lỗi",
+            description: error.message || "Không thể tải danh sách trả hàng",
+            variant: "destructive",
+          });
+          setReturnRequests([]);
+        } finally {
+          setLoadingReturn(false);
+        }
+      };
+      fetchReturnRequests();
+    }
+  }, [activeTab]);
 
   /**
    * Xử lý mở popup xác nhận hủy đơn hàng
@@ -189,12 +352,15 @@ export default function OrdersPage() {
     const itemName = `${item.productName} - ${item.productVersionName} - ${item.colorName}`;
     setSelectedItem({ 
       orderId, 
+      orderItemId: item.orderItemId,
       itemName, 
       itemImage: item.imageUrl || "", 
       emeiSerial: item.imeiOrSerial || "" 
     });
     setRequestType("warranty");
     setReason("");
+    setPhoneNumber("");
+    setAddress("");
     setImages([]);
     setIsModalOpen(true);
   }
@@ -202,11 +368,85 @@ export default function OrdersPage() {
     if (e.target.files) setImages([...images, ...Array.from(e.target.files)]);
   }
   function handleRemoveImage(index: number) { setImages(images.filter((_, i) => i !== index)); }
-  function handleSubmitRequest() {
-    if (!reason.trim()) { toast({ title: "Vui lòng nhập lý do", variant: "destructive" }); return; }
-    const requestTypeText = { warranty: "bảo hành", exchange: "đổi", return: "trả" }[requestType];
-    toast({ title: `Đã gửi yêu cầu ${requestTypeText} thành công` });
-    setIsModalOpen(false);
+  
+  /**
+   * Xử lý submit yêu cầu trả/đổi/bảo hành
+   */
+  async function handleSubmitRequest() {
+    if (!selectedItem) return;
+    
+    if (!reason.trim()) {
+      toast({ 
+        title: "Vui lòng nhập lý do", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Kiểm tra phoneNumber và address cho bảo hành và đổi hàng
+    if (requestType === "warranty" || requestType === "exchange") {
+      if (!phoneNumber.trim()) {
+        toast({ 
+          title: "Vui lòng nhập số điện thoại", 
+          variant: "destructive" 
+        });
+        return;
+      }
+      if (!address.trim()) {
+        toast({ 
+          title: "Vui lòng nhập địa chỉ", 
+          variant: "destructive" 
+        });
+        return;
+      }
+    }
+
+    try {
+      setIsSubmittingRequest(true);
+      
+      // Map requestType từ frontend sang backend enum
+      const returnRequestTypeMap: Record<RequestType, ReturnRequestType> = {
+        warranty: ReturnRequestType.WARRANTY,
+        exchange: ReturnRequestType.EXCHANGE,
+        return: ReturnRequestType.RETURN,
+      };
+
+      const payload = {
+        orderItemId: selectedItem.orderItemId,
+        returnRequestType: returnRequestTypeMap[requestType],
+        reason: reason.trim(),
+        ...(requestType === "warranty" || requestType === "exchange" ? {
+          phoneNumber: phoneNumber.trim(),
+          address: address.trim(),
+        } : {}),
+      };
+
+      await createReturnRequest(payload);
+      
+      const requestTypeText = { warranty: "bảo hành", exchange: "đổi", return: "trả" }[requestType];
+      toast({ 
+        title: "Thành công", 
+        description: `Đã gửi yêu cầu ${requestTypeText} thành công` 
+      });
+      
+      // Refresh danh sách đơn hàng
+      const data = await getOrderListByCurrentUser();
+      setOrders(data);
+      
+      setIsModalOpen(false);
+      setReason("");
+      setPhoneNumber("");
+      setAddress("");
+      setImages([]);
+    } catch (error: any) {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể gửi yêu cầu",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingRequest(false);
+    }
   }
 
   return (
@@ -271,7 +511,18 @@ export default function OrdersPage() {
                         </Link>
                         <div className="flex-1">
                           <Link href={`/product/${product.slug}`} className="block mb-1 hover:text-primary transition-colors cursor-pointer">
-                            <p className="font-medium">{product.productName} - {product.productVersionName} - {product.colorName}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-medium">{product.productName} - {product.productVersionName} - {product.colorName}</p>
+                              {product.returnRequestType === ReturnRequestType.EXCHANGE && (
+                                <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white border-0">Yêu cầu đổi hàng</Badge>
+                              )}
+                              {product.returnRequestType === ReturnRequestType.RETURN && (
+                                <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white border-0">Yêu cầu trả hàng</Badge>
+                              )}
+                              {product.returnRequestType === ReturnRequestType.WARRANTY && (
+                                <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white border-0">Yêu cầu bảo hành</Badge>
+                              )}
+                            </div>
                           </Link>
                           <p className="text-sm text-muted-foreground mb-1">
                             {product.imeiOrSerial ? (product.imeiOrSerial.startsWith("3") ? `IMEI: ${product.imeiOrSerial}` : `Serial: ${product.imeiOrSerial}`) : ""}
@@ -280,14 +531,16 @@ export default function OrdersPage() {
                         </div>
                         {order.status === OrderStatus.DELIVERED && (
                           <div className="flex flex-col gap-2 shrink-0">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={() => handleOpenModal(order.id, product)} 
-                              className="rounded-xl"
-                            >
-                              Gửi yêu cầu
-                            </Button>
+                            {!product.returnRequestType && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleOpenModal(order.id, product)} 
+                                className="rounded-xl"
+                              >
+                                Gửi yêu cầu
+                              </Button>
+                            )}
                             <Button 
                               variant="outline" 
                               size="sm" 
@@ -313,31 +566,132 @@ export default function OrdersPage() {
         </TabsContent>
 
         <TabsContent value="warranty">
-          <div className="space-y-4">
-            {mockWarranties.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">Không có sản phẩm bảo hành</div>
-            ) : (
-              mockWarranties.map((warranty) => (
+          {loadingWarranty ? (
+            <div className="text-center py-12 text-muted-foreground">Đang tải...</div>
+          ) : warrantyClaims.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">Không có yêu cầu bảo hành</div>
+          ) : (
+            <div className="space-y-4">
+              {warrantyClaims.map((warranty) => (
                 <div key={warranty.id} className="bg-white rounded-2xl border p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="mb-2">{warranty.productName}</h3>
-                      <p className="text-sm text-muted-foreground">Mã bảo hành: {warranty.id}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <h3 className="font-semibold">Mã bảo hành: {warranty.id}</h3>
+                        <Badge className={`${getWarrantyStatusColor(warranty.status)} text-white border-0`}>
+                          {getWarrantyStatusText(warranty.status)}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-1">Mã đơn hàng: #{warranty.orderId}</p>
+                      <p className="text-sm text-muted-foreground">Ngày gửi: {formatDateOnly(warranty.createdAt)}</p>
                     </div>
-                    <Badge className={warranty.status === "active" ? "bg-green-500" : "bg-gray-500"}>{warranty.statusText}</Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div><span className="text-muted-foreground">Ngày bắt đầu:</span><p>{warranty.startDate}</p></div>
-                    <div><span className="text-muted-foreground">Ngày hết hạn:</span><p>{warranty.endDate}</p></div>
+                  
+                  {/* Thông tin sản phẩm */}
+                  <div className="flex gap-4 items-start mb-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                      <ImageWithFallback 
+                        src={getImageUrl(warranty.product.imageUrl)} 
+                        alt={`${warranty.product.productName} - ${warranty.product.productVersionName} - ${warranty.product.colorName}`} 
+                        className="w-full h-full object-cover" 
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium mb-1">{warranty.product.productName} - {warranty.product.productVersionName} - {warranty.product.colorName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {warranty.product.imeiOrSerial ? (warranty.product.imeiOrSerial.startsWith("3") ? `IMEI: ${warranty.product.imeiOrSerial}` : `Serial: ${warranty.product.imeiOrSerial}`) : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Thông tin chi tiết */}
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Lý do: </span>
+                      <span>{warranty.reason || "Không có"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Số điện thoại: </span>
+                      <span>{warranty.phoneNumber}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Địa chỉ: </span>
+                      <span>{warranty.address}</span>
+                    </div>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="exchange"><div className="text-center py-12 text-muted-foreground">Không có yêu cầu đổi hàng</div></TabsContent>
-        <TabsContent value="return"><div className="text-center py-12 text-muted-foreground">Không có yêu cầu trả hàng</div></TabsContent>
+        <TabsContent value="exchange">
+          <div className="text-center py-12 text-muted-foreground">Không có yêu cầu đổi hàng</div>
+        </TabsContent>
+
+        <TabsContent value="return">
+          {loadingReturn ? (
+            <div className="text-center py-12 text-muted-foreground">Đang tải...</div>
+          ) : returnRequests.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">Không có yêu cầu trả hàng</div>
+          ) : (
+            <div className="space-y-4">
+              {returnRequests.map((returnRequest) => (
+                <div key={returnRequest.id} className="bg-white rounded-2xl border p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <h3 className="font-semibold">Mã yêu cầu: {returnRequest.id}</h3>
+                        <Badge className={`${getReturnStatusColor(returnRequest.status)} text-white border-0`}>
+                          {getReturnStatusText(returnRequest.status)}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-1">Mã đơn hàng: #{returnRequest.orderId}</p>
+                      <p className="text-sm text-muted-foreground">Ngày gửi: {formatDateOnly(returnRequest.createdAt)}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Thông tin sản phẩm */}
+                  <div className="flex gap-4 items-start mb-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                      <ImageWithFallback 
+                        src={getImageUrl(returnRequest.product.imageUrl)} 
+                        alt={`${returnRequest.product.productName} - ${returnRequest.product.productVersionName} - ${returnRequest.product.colorName}`} 
+                        className="w-full h-full object-cover" 
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium mb-1">{returnRequest.product.productName} - {returnRequest.product.productVersionName} - {returnRequest.product.colorName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {returnRequest.product.imeiOrSerial ? (returnRequest.product.imeiOrSerial.startsWith("3") ? `IMEI: ${returnRequest.product.imeiOrSerial}` : `Serial: ${returnRequest.product.imeiOrSerial}`) : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Thông tin chi tiết */}
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Lý do: </span>
+                      <span>{returnRequest.reason || "Không có"}</span>
+                    </div>
+                    {returnRequest.phoneNumber && (
+                      <div>
+                        <span className="text-muted-foreground">Số điện thoại: </span>
+                        <span>{returnRequest.phoneNumber}</span>
+                      </div>
+                    )}
+                    {returnRequest.address && (
+                      <div>
+                        <span className="text-muted-foreground">Địa chỉ: </span>
+                        <span>{returnRequest.address}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Popup xác nhận hủy đơn hàng */}
@@ -501,6 +855,31 @@ export default function OrdersPage() {
                 <Label htmlFor="reason">Lý do *</Label>
                 <Textarea id="reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Mô tả chi tiết lý do của bạn..." className="mt-1.5 rounded-xl min-h-[100px]" />
               </div>
+              {(requestType === "warranty" || requestType === "exchange") && (
+                <>
+                  <div>
+                    <Label htmlFor="phoneNumber">Số điện thoại *</Label>
+                    <Input 
+                      id="phoneNumber" 
+                      type="tel"
+                      value={phoneNumber} 
+                      onChange={(e) => setPhoneNumber(e.target.value)} 
+                      placeholder="Nhập số điện thoại của bạn" 
+                      className="mt-1.5 rounded-xl" 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="address">Địa chỉ *</Label>
+                    <Textarea 
+                      id="address" 
+                      value={address} 
+                      onChange={(e) => setAddress(e.target.value)} 
+                      placeholder="Nhập địa chỉ của bạn" 
+                      className="mt-1.5 rounded-xl min-h-[80px]" 
+                    />
+                  </div>
+                </>
+              )}
               <div>
                 <Label htmlFor="images">Hình ảnh (tùy chọn)</Label>
                 <div className="mt-1.5">
@@ -528,8 +907,21 @@ export default function OrdersPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)} className="rounded-xl">Hủy</Button>
-            <Button onClick={handleSubmitRequest} className="rounded-xl">Gửi yêu cầu</Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsModalOpen(false)} 
+              className="rounded-xl"
+              disabled={isSubmittingRequest}
+            >
+              Hủy
+            </Button>
+            <Button 
+              onClick={handleSubmitRequest} 
+              className="rounded-xl"
+              disabled={isSubmittingRequest}
+            >
+              {isSubmittingRequest ? "Đang gửi..." : "Gửi yêu cầu"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

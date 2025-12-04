@@ -1,9 +1,9 @@
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080",
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://192.168.1.28:8080",
   ENDPOINTS: {
     AUTH: {
-      SIGN_IN: "/api/auth/sign-in",
+      SIGN_IN: "/api/auth/sign-in", 
       SIGN_UP: "/api/auth/sign-up",
       CONFIRM_OTP: "/api/auth/confirm-otp",
       REGISTER_INFO: "/api/auth/register-information",
@@ -93,6 +93,20 @@ export const API_CONFIG = {
       DETAIL: (id: string) => `/order/detail/${id}`,
       // PUT /order/update-status/{id} - Cập nhật trạng thái đơn hàng (admin)
       UPDATE_STATUS: (id: string) => `/order/update-status/${id}`,
+      // POST /order/create-return-request - Tạo yêu cầu trả/đổi/bảo hành
+      CREATE_RETURN_REQUEST: "/order/create-return-request",
+      // GET /order/warranty/list/current-user - Lấy danh sách bảo hành của user hiện tại
+      WARRANTY_LIST_CURRENT_USER: "/order/warranty/list/current-user",
+      // GET /order/return/list/current-user - Lấy danh sách trả hàng của user hiện tại
+      RETURN_LIST_CURRENT_USER: "/order/return/list/current-user",
+      // GET /order/admin/warranty/list - Lấy danh sách bảo hành (admin)
+      ADMIN_WARRANTY_LIST: "/order/admin/warranty/list",
+      // GET /order/admin/return/list - Lấy danh sách trả hàng (admin)
+      ADMIN_RETURN_LIST: "/order/admin/return/list",
+      // PUT /order/admin/warranty/update-status/{id} - Cập nhật trạng thái bảo hành (admin)
+      ADMIN_WARRANTY_UPDATE_STATUS: (id: string) => `/order/admin/warranty/update-status/${id}`,
+      // PUT /order/admin/return/update-status/{id} - Cập nhật trạng thái trả hàng (admin)
+      ADMIN_RETURN_UPDATE_STATUS: (id: string) => `/order/admin/return/update-status/${id}`,
     },
     BANK: {
       // GET /bank/check/{orderId} - Kiểm tra trạng thái thanh toán banking

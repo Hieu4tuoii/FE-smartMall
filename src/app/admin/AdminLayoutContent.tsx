@@ -49,14 +49,19 @@ export function AdminLayoutContent({
       icon: Package,
     },
     {
-      href: "/admin/categories",
-      label: "Danh mục",
-      icon: FolderTree,
+      href: "/admin/orders",
+      label: "Đơn hàng",
+      icon: Receipt,
     },
     {
-      href: "/admin/brands",
-      label: "Thương hiệu",
-      icon: Award,
+      href: "/admin/import-orders",
+      label: "Đơn nhập",
+      icon: ShoppingCart,
+    },
+    {
+      href: "/admin/suppliers",
+      label: "Nhà cung cấp",
+      icon: Truck,
     },
     {
       href: "/admin/customers",
@@ -69,21 +74,6 @@ export function AdminLayoutContent({
       icon: UserCog,
     },
     {
-      href: "/admin/suppliers",
-      label: "Nhà cung cấp",
-      icon: Truck,
-    },
-    {
-      href: "/admin/import-orders",
-      label: "Đơn nhập",
-      icon: ShoppingCart,
-    },
-    {
-      href: "/admin/orders",
-      label: "Đơn hàng",
-      icon: Receipt,
-    },
-    {
       href: "/admin/promotions",
       label: "Chương trình giảm giá",
       icon: Tag,
@@ -92,6 +82,16 @@ export function AdminLayoutContent({
       href: "/admin/banners",
       label: "Banner",
       icon: ImageIcon,
+    },
+    {
+      href: "/admin/categories",
+      label: "Danh mục",
+      icon: FolderTree,
+    },
+    {
+      href: "/admin/brands",
+      label: "Thương hiệu",
+      icon: Award,
     },
   ];
 

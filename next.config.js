@@ -11,6 +11,11 @@ module.exports = {
         hostname: "localhost",
         pathname: "/**",
       },
+      {
+        protocol: "http",
+        hostname: "192.168.1.28",
+        pathname: "/**",
+      },
     ],
   },
   eslint: {

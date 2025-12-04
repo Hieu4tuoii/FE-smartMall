@@ -51,10 +51,10 @@ smartmall/src/
 1. Tạo file `.env.local`:
 
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:8080
+NEXT_PUBLIC_API_URL=http://192.168.1.28:8080
 ```
 
-2. Backend phải chạy tại `http://localhost:8080` hoặc cập nhật URL trong `.env.local`
+2. Backend phải chạy tại `http://192.168.1.28:8080` hoặc cập nhật URL trong `.env.local`
 
 ## Các tính năng chính
 
