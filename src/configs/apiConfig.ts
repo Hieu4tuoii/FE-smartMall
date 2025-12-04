@@ -111,6 +111,8 @@ export const API_CONFIG = {
       HISTORY: "/chat/history",
       // DELETE /chat/history - Xóa toàn bộ lịch sử chat
       DELETE_HISTORY: "/chat/history",
+      // GET /chat/payment-status/{chatHistoryId} - Kiểm tra trạng thái thanh toán
+      PAYMENT_STATUS: (chatHistoryId: number) => `/chat/payment-status/${chatHistoryId}`,
     },
   },
 } as const;

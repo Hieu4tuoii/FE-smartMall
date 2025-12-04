@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Send, Trash2, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
+import { MessageCircle, X, Send, Trash2, Loader2, CheckCircle2, Clock } from "lucide-react";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -23,6 +25,8 @@ export function ChatBot() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isPollingReloadRef = useRef(false);
 
   /**
    * Scroll đến tin nhắn cuối cùng
@@ -33,8 +37,9 @@ export function ChatBot() {
 
   /**
    * Lấy lịch sử chat khi mở popup
+   * @param shouldScroll - Có scroll xuống cuối sau khi load không (mặc định true)
    */
-  const loadChatHistory = async () => {
+  const loadChatHistory = useCallback(async (shouldScroll: boolean = true) => {
     setIsLoadingHistory(true);
     try {
       const response = await ChatService.getChatHistory(0, 20);
@@ -42,8 +47,13 @@ export function ChatBot() {
       const chatMessages = Array.isArray(response.items) ? response.items : [];
       setMessages(chatMessages);
       
-      // Scroll đến cuối sau khi load
-      setTimeout(scrollToBottom, 100);
+      // Chỉ scroll khi được yêu cầu (không scroll khi reload do polling)
+      if (shouldScroll) {
+        setTimeout(scrollToBottom, 100);
+      } else {
+        // Đánh dấu đang reload do polling để không scroll trong useEffect
+        isPollingReloadRef.current = true;
+      }
     } catch (error) {
       console.error("Error loading chat history:", error);
       toast({
@@ -54,7 +64,7 @@ export function ChatBot() {
     } finally {
       setIsLoadingHistory(false);
     }
-  };
+  }, []);
 
   /**
    * Xử lý mở/đóng popup
@@ -70,11 +80,12 @@ export function ChatBot() {
    * Gửi tin nhắn
    */
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    const trimmedContent = inputValue.trim();
+    if (!trimmedContent || isLoading) return;
 
     const userMessage: ChatHistoryResponse = {
       id: null,
-      content: inputValue.trim(),
+      content: trimmedContent,
       role: "user",
       toolCalls: null,
       toolCallId: null,
@@ -89,7 +100,7 @@ export function ChatBot() {
 
     try {
       // Gửi tin nhắn và nhận phản hồi
-      await ChatService.sendMessage({ content: userMessage.content });
+      await ChatService.sendMessage({ content: trimmedContent });
       
       // Reload lịch sử để lấy phản hồi từ server
       const response = await ChatService.getChatHistory(0, 20);
@@ -149,10 +160,82 @@ export function ChatBot() {
     }
   }, [isOpen]);
 
-  // Scroll đến cuối khi có tin nhắn mới
+  // Scroll đến cuối khi có tin nhắn mới (chỉ khi không phải reload do polling)
   useEffect(() => {
-    scrollToBottom();
+    // Không scroll nếu đang reload do polling payment status
+    if (!isPollingReloadRef.current) {
+      scrollToBottom();
+    } else {
+      // Reset flag sau khi đã skip scroll
+      isPollingReloadRef.current = false;
+    }
   }, [messages]);
+
+  /**
+   * Polling payment status khi có QR code
+   * Gọi API payment-status mỗi 5s đến khi trả về true, sau đó reload history
+   */
+  useEffect(() => {
+    // Tìm message có role qr_code và có id
+    const qrCodeMessage = messages.find(
+      (msg) => msg.role === "qr_code" && msg.id !== null && msg.content
+    );
+
+    if (!qrCodeMessage || !qrCodeMessage.id) {
+      // Dừng polling nếu không có QR code
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      return;
+    }
+
+    // Kiểm tra xem đã có payment_success chưa, nếu có thì không cần polling nữa
+    const hasPaymentSuccess = messages.some((msg) => msg.role === "payment_success");
+    if (hasPaymentSuccess) {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      return;
+    }
+
+    let isMounted = true;
+
+    const pollPaymentStatus = async () => {
+      try {
+        const isPaid = await ChatService.checkPaymentStatus(qrCodeMessage.id!);
+        if (!isMounted) return;
+
+        if (isPaid) {
+          // Dừng polling
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+          }
+          // Reload lịch sử chat để lấy message payment_success (không scroll)
+          await loadChatHistory(false);
+        }
+      } catch (error: any) {
+        if (!isMounted) return;
+        console.error("Error checking payment status:", error);
+        // Không hiển thị toast để tránh spam, chỉ log lỗi
+      }
+    };
+
+    // Gọi ngay lập tức lần đầu
+    pollPaymentStatus();
+    // Sau đó gọi mỗi 5s
+    pollingRef.current = setInterval(pollPaymentStatus, 5000);
+
+    return () => {
+      isMounted = false;
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [messages, loadChatHistory]);
 
   /**
    * Render tin nhắn theo role
@@ -160,13 +243,56 @@ export function ChatBot() {
   const renderMessage = (message: ChatHistoryResponse, index: number) => {
     const isUser = message.role === "user";
     const isProductConsulting = message.role === "product_consulting";
+    const isQrCode = message.role === "qr_code";
+    const isPaymentSuccess = message.role === "payment_success";
+
+    // Hiển thị payment success với icon check trong ô vuông (giống màn QR payment)
+    if (isPaymentSuccess) {
+      return (
+        <div key={index} className="flex justify-start mb-4">
+          <div className="max-w-[200px] w-full aspect-square bg-white border-2 rounded-2xl p-6 flex items-center justify-center">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="w-full h-full bg-green-50 rounded-xl flex flex-col items-center justify-center"
+            >
+              <CheckCircle2 className="w-16 h-16 text-green-600 mb-3" />
+              <p className="text-green-600 font-medium text-xs">Thanh toán thành công!</p>
+            </motion.div>
+          </div>
+        </div>
+      );
+    }
+
+    // Hiển thị QR code
+    if (isQrCode && message.content) {
+      return (
+        <div key={index} className="flex justify-start mb-4">
+          <div className="max-w-[80%] rounded-lg px-4 py-3 bg-muted">
+            <div className="space-y-2">
+              <div className="w-full max-w-[200px] aspect-square bg-white border-2 rounded-lg p-3 flex items-center justify-center relative">
+                <Image
+                  src={message.content}
+                  alt="QR thanh toán"
+                  fill
+                  className="object-contain rounded"
+                  unoptimized
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     if (isProductConsulting && message.productVersions && message.productVersions.length > 0) {
       return (
         <div key={index} className="flex justify-start mb-4">
-          <div className="flex flex-col gap-3 max-w-[80%]">
+          <div className="flex flex-row gap-3 overflow-x-auto max-w-full pb-2">
             {message.productVersions.map((product, productIndex) => (
-              <ProductConsultingCard key={productIndex} product={product} />
+              <div key={productIndex} className="flex-shrink-0">
+                <ProductConsultingCard product={product} />
+              </div>
             ))}
           </div>
         </div>
@@ -215,10 +341,10 @@ export function ChatBot() {
 
       {/* Chat popup */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-96 h-[600px] flex flex-col bg-background border rounded-lg shadow-2xl">
+        <div className="fixed bottom-5 right-6 z-50 w-[500px] max-w-[85vw] h-[600px] flex flex-col bg-background border rounded-lg shadow-2xl">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
-            <h3 className="font-semibold text-lg">Chat hỗ trợ</h3>
+            <h3 className="font-semibold text-lg">Trợ lý SmartMall</h3>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"

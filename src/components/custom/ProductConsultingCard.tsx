@@ -66,23 +66,25 @@ export function ProductConsultingCard({ product }: ProductConsultingCardProps) {
 
   return (
     <Card className="overflow-hidden border shadow-sm rounded-lg max-w-[280px]">
-      <div className="relative aspect-square overflow-hidden bg-gray-100">
-        {product.imageUrl ? (
-          <Image
-            src={getImageUrl(product.imageUrl)}
-            alt={product.name}
-            fill
-            sizes="(max-width: 768px) 100vw, 280px"
-            className="object-cover"
-            priority={false}
-          />
-        ) : null}
-        {discount > 0 && (
-          <Badge className="absolute top-2 left-2 bg-destructive text-white text-[10px] px-1.5 py-0.5">
-            -{discount}%
-          </Badge>
-        )}
-      </div>
+      <Link href={`/product/${product.slug}`}>
+        <div className="relative aspect-square overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity">
+          {product.imageUrl ? (
+            <Image
+              src={getImageUrl(product.imageUrl)}
+              alt={product.name}
+              fill
+              sizes="(max-width: 768px) 100vw, 280px"
+              className="object-cover"
+              priority={false}
+            />
+          ) : null}
+          {discount > 0 && (
+            <Badge className="absolute top-2 left-2 bg-destructive text-white text-[10px] px-1.5 py-0.5">
+              -{discount}%
+            </Badge>
+          )}
+        </div>
+      </Link>
       <CardContent className="p-3">
         <Link href={`/product/${product.slug}`}>
           <h3 className="text-xs mb-1.5 line-clamp-2 min-h-[2rem] hover:text-primary transition-colors">
@@ -112,7 +114,7 @@ export function ProductConsultingCard({ product }: ProductConsultingCardProps) {
         {/* Chọn màu sắc */}
         {product.productColorVersions && product.productColorVersions.length > 0 && (
           <div className="mb-2">
-            <p className="text-[10px] text-muted-foreground mb-1.5">Chọn màu sắc:</p>
+            {/* <p className="text-[10px] text-muted-foreground mb-1.5">Chọn màu sắc:</p> */}
             <div className="flex flex-wrap gap-1.5">
               {product.productColorVersions.map((color) => {
                 const stock = color.totalStock ?? 0;
@@ -143,25 +145,25 @@ export function ProductConsultingCard({ product }: ProductConsultingCardProps) {
             </div>
             {selectedColor && (
               <p className="text-[10px] text-muted-foreground mt-1.5">
-                Tồn kho: {selectedColor.totalStock ?? 0} sản phẩm
+                Tồn kho: {selectedColor.totalStock ?? 0}
               </p>
             )}
-            {!selectedColor && (
+            {/* {!selectedColor && (
               <p className="text-[10px] text-destructive mt-1.5">
                 Tất cả màu đều hết hàng
               </p>
-            )}
+            )} */}
           </div>
         )}
 
-        <Link href={`/product/${product.slug}`}>
+        {/* <Link href={`/product/${product.slug}`}>
           <Button
             className="w-full h-8 text-xs"
             disabled={!selectedColorId || !isColorAvailable(selectedColorId)}
           >
             Xem chi tiết
           </Button>
-        </Link>
+        </Link> */}
       </CardContent>
     </Card>
   );

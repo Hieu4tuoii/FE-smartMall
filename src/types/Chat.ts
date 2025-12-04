@@ -32,7 +32,7 @@ export interface ChatProductColorVersion {
 export interface ChatHistoryResponse {
   id: number | null;
   content: string | null;
-  role: "user" | "assistant" | "product_consulting";
+  role: "user" | "assistant" | "product_consulting" | "qr_code" | "payment_success";
   toolCalls: ToolCall[] | null;
   toolCallId: string | null;
   createdAt: string | null;

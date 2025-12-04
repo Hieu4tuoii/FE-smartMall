@@ -77,5 +77,27 @@ export class ChatService {
       throw new Error(error.message || "Xóa lịch sử chat thất bại");
     }
   }
+
+  /**
+   * Kiểm tra trạng thái thanh toán từ chat history
+   * @param chatHistoryId - ID của chat history chứa QR code thanh toán
+   * @returns true nếu thanh toán thành công, false nếu chưa thanh toán
+   */
+  static async checkPaymentStatus(chatHistoryId: number): Promise<boolean> {
+    const response = await AuthService.fetchWithAuth(
+      API_CONFIG.ENDPOINTS.CHAT.PAYMENT_STATUS(chatHistoryId),
+      {
+        method: "GET",
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Kiểm tra trạng thái thanh toán thất bại");
+    }
+
+    const result = await response.json();
+    return Boolean(result.data);
+  }
 }
 
